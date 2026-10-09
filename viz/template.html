@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tool Dependency Graph</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6b66; --line: #dcdcd6;
+    --edge: rgba(90, 100, 120, 0.22); --edge-hi: #d9480f; --edge-in: #1971c2; --sel: #1c1c1a;
+    --accent: #1971c2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416; --panel: #1d1d20; --ink: #ececea; --muted: #9a9a94; --line: #2e2e33;
+      --edge: rgba(160, 170, 190, 0.18); --edge-hi: #ff922b; --edge-in: #74c0fc; --sel: #ececea; --accent: #74c0fc;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416; --panel: #1d1d20; --ink: #ececea; --muted: #9a9a94; --line: #2e2e33;
+    --edge: rgba(160, 170, 190, 0.18); --edge-hi: #ff922b; --edge-in: #74c0fc; --sel: #ececea; --accent: #74c0fc;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  header .stats { color: var(--muted); font-size: 12.5px; }
+  header .spacer { flex: 1; }
+  input[type="search"], select, button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+  input[type="search"] { width: 230px; }
+  button { cursor: pointer; }
+  button:hover, select:hover { border-color: var(--muted); }
+  main { flex: 1; display: flex; min-height: 0; }
+  #stage { flex: 1; position: relative; min-width: 0; }
+  canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  #tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; max-width: 320px; display: none; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+  #tip b { display: block; word-break: break-all; }
+  #tip span { color: var(--muted); }
+  aside { width: 340px; background: var(--panel); border-left: 1px solid var(--line); overflow: auto; padding: 14px 16px; }
+  aside h2 { font-size: 13px; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  aside h2:first-child { margin-top: 0; }
+  .slug { font-weight: 650; word-break: break-all; font-size: 14px; }
+  .desc { color: var(--muted); font-size: 12.5px; margin: 4px 0 0; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; color: #fff; margin-top: 6px; }
+  .link { display: block; padding: 3px 0; cursor: pointer; color: var(--accent); word-break: break-all; font-size: 12.5px; }
+  .link:hover { text-decoration: underline; }
+  .param { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-right: 4px; }
+  .legend { display: flex; flex-direction: column; gap: 2px; }
+  .legend button { display: flex; align-items: center; gap: 8px; text-align: left; border: 0; background: none; padding: 3px 4px; border-radius: 4px; width: 100%; }
+  .legend button:hover { background: var(--bg); }
+  .legend button.off { opacity: .35; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .legend .n { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12.5px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+  @media (max-width: 760px) { main { flex-direction: column; } aside { width: auto; max-height: 38vh; border-left: 0; border-top: 1px solid var(--line); } input[type="search"] { width: 150px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tool dependency graph</h1>
+  <span class="stats" id="stats"></span>
+  <span class="spacer"></span>
+  <input type="search" id="search" placeholder="Search tool, e.g. issue_comment" aria-label="Search tools">
+  <select id="labelFilter" aria-label="Filter by edge label"></select>
+  <button id="fit" title="Fit the graph to the window">Fit</button>
+  <button id="clear" title="Clear selection and filters">Reset</button>
+</header>
+<main>
+  <div id="stage"><canvas id="c"></canvas><div id="tip"></div></div>
+  <aside id="side"></aside>
+</main>
+
+<script>
+/* The graph is embedded so this file works offline and from a fresh clone
+   (dependency_graph.json itself is not committed). */
+const DATA = /*__GRAPH_DATA__*/null;
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("c"), ctx = canvas.getContext("2d");
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---- model ---------------------------------------------------------------------------------
+  const nodes = DATA.nodes.map((n, i) => ({ ...n, i, x: 0, y: 0, vx: 0, vy: 0, in: [], out: [] }));
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const edges = DATA.edges.map((e) => ({ a: byId.get(e.from), b: byId.get(e.to), label: e.label })).filter((e) => e.a && e.b);
+  edges.forEach((e) => { e.a.out.push(e); e.b.in.push(e); });
+  const connected = nodes.filter((n) => n.in.length + n.out.length > 0);
+  const isolated = nodes.filter((n) => n.in.length + n.out.length === 0);
+  connected.forEach((n) => { n.r = 3 + Math.sqrt(n.in.length + n.out.length) * 1.1; });
+
+  const serviceCounts = {};
+  connected.forEach((n) => { serviceCounts[n.service] = (serviceCounts[n.service] || 0) + 1; });
+  const services = Object.keys(serviceCounts).sort((a, b) => serviceCounts[b] - serviceCounts[a]);
+  const PALETTE = ["#1971c2", "#e8590c", "#2f9e44", "#ae3ec9", "#e03131", "#0c8599", "#f08c00", "#5f3dc4", "#c2255c", "#66a80f", "#868e96"];
+  const colorOf = (service) => { const k = services.indexOf(service); return PALETTE[k >= 0 && k < PALETTE.length - 1 ? k : PALETTE.length - 1]; };
+
+  const labelCounts = {};
+  edges.forEach((e) => { labelCounts[e.label] = (labelCounts[e.label] || 0) + 1; });
+
+  // ---- state ---------------------------------------------------------------------------------
+  let selected = null, hovered = null, labelFilter = "", serviceOff = new Set(), query = "";
+  let k = 1, tx = 0, ty = 0, W = 0, H = 0, alpha = 1, dragNode = null, panning = false, last = null, moved = false;
+
+  const visibleNode = (n) => !serviceOff.has(n.service);
+  const visibleEdge = (e) => visibleNode(e.a) && visibleNode(e.b) && (!labelFilter || e.label === labelFilter);
+
+  // ---- layout: a small force simulation ----------------------------------------------------------
+  const centers = {};
+  services.forEach((s, i) => { const rad = 240 * Math.sqrt(i + 0.6); centers[s] = [rad * Math.cos(i * 2.39996), rad * Math.sin(i * 2.39996)]; });
+  connected.forEach((n) => { const c = centers[n.service]; n.x = c[0] + (Math.random() - 0.5) * 120; n.y = c[1] + (Math.random() - 0.5) * 120; });
+
+  function tick() {
+    const ns = connected.filter(visibleNode), es = edges.filter(visibleEdge);
+    for (let i = 0; i < ns.length; i++) {
+      const a = ns[i];
+      for (let j = i + 1; j < ns.length; j++) {
+        const b = ns[j]; let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+        if (d2 > 90000) continue;
+        if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+        const f = Math.min(40, 1500 / d2) * alpha, d = Math.sqrt(d2);
+        a.vx += (dx / d) * f; a.vy += (dy / d) * f; b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
+      }
+    }
+    for (const e of es) {
+      const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, d = Math.sqrt(dx * dx + dy * dy) || 1, f = (d - 70) * 0.012 * alpha;
+      e.a.vx += (dx / d) * f; e.a.vy += (dy / d) * f; e.b.vx -= (dx / d) * f; e.b.vy -= (dy / d) * f;
+    }
+    for (const n of ns) {
+      const c = centers[n.service];
+      n.vx += (c[0] - n.x) * 0.004 * alpha - n.x * 0.0006 * alpha; n.vy += (c[1] - n.y) * 0.004 * alpha - n.y * 0.0006 * alpha;
+      if (n === dragNode) { n.vx = n.vy = 0; continue; }
+      n.vx *= 0.82; n.vy *= 0.82;
+      n.x += Math.max(-30, Math.min(30, n.vx)); n.y += Math.max(-30, Math.min(30, n.vy));
+    }
+    alpha = Math.max(0.015, alpha * 0.985);
+  }
+
+  // ---- drawing -------------------------------------------------------------------------------
+  const toScreen = (n) => [n.x * k + tx, n.y * k + ty];
+  const incident = (n, e) => e.a === n || e.b === n;
+  const focus = () => selected || hovered;
+
+  function draw() {
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const f = focus(), hi = f ? new Set([f]) : null;
+    if (f) edges.forEach((e) => { if (visibleEdge(e) && incident(f, e)) { hi.add(e.a); hi.add(e.b); } });
+    const q = query.trim().toLowerCase();
+    const matches = q ? new Set(connected.filter((n) => n.id.toLowerCase().includes(q))) : null;
+
+    // edges: quiet by default, loud for the focused node
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = css("--edge");
+    ctx.beginPath();
+    for (const e of edges) {
+      if (!visibleEdge(e) || (f && incident(f, e))) continue;
+      if (f) { ctx.globalAlpha = 0.25; }
+      const [x1, y1] = toScreen(e.a), [x2, y2] = toScreen(e.b);
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    if (f) {
+      for (const e of edges) {
+        if (!visibleEdge(e) || !incident(f, e)) continue;
+        const outgoing = e.a === f, col = css(outgoing ? "--edge-hi" : "--edge-in");
+        const [x1, y1] = toScreen(e.a), [x2, y2] = toScreen(e.b);
+        ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, rb = e.b.r * k + 2;
+        const ex = x2 - ux * rb, ey = y2 - uy * rb;
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 9 + uy * 4, ey - uy * 9 - ux * 4); ctx.lineTo(ex - ux * 9 - uy * 4, ey - uy * 9 + ux * 4); ctx.closePath(); ctx.fill();
+        ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "center";
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, text = e.label, tw = ctx.measureText(text).width + 8;
+        ctx.fillStyle = css("--panel"); ctx.fillRect(mx - tw / 2, my - 8, tw, 15);
+        ctx.fillStyle = col; ctx.fillText(text, mx, my + 3);
+      }
+      ctx.lineWidth = 1;
+    }
+
+    // nodes
+    for (const n of connected) {
+      if (!visibleNode(n)) continue;
+      const [x, y] = toScreen(n), r = Math.max(2, n.r * k);
+      if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+      const dim = (f && !hi.has(n)) || (matches && !matches.has(n));
+      ctx.globalAlpha = dim ? 0.14 : 1;
+      ctx.fillStyle = colorOf(n.service);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+      if (n === selected || (matches && matches.has(n))) { ctx.strokeStyle = css("--sel"); ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    ctx.globalAlpha = 1;
+
+    // labels: only where they help
+    ctx.font = "11.5px system-ui, sans-serif"; ctx.textAlign = "left";
+    const shortName = (n) => n.id.replace(/^[A-Z]+_/, "");
+    const labelled = f ? [...hi] : matches && matches.size <= 40 ? [...matches] : k > 2.2 ? connected.filter(visibleNode) : [];
+    for (const n of labelled) {
+      const [x, y] = toScreen(n); if (x < 0 || y < 0 || x > W || y > H) continue;
+      const text = shortName(n), tw = ctx.measureText(text).width;
+      ctx.fillStyle = css("--panel"); ctx.globalAlpha = 0.85; ctx.fillRect(x + n.r * k + 3, y - 8, tw + 6, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = css("--ink"); ctx.fillText(text, x + n.r * k + 6, y + 4);
+    }
+  }
+
+  // ---- loop / sizing -------------------------------------------------------------------------
+  function resize() {
+    const r = canvas.getBoundingClientRect(); W = r.width; H = r.height;
+    canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
+  }
+  function fit() {
+    const ns = connected.filter(visibleNode); if (!ns.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    ns.forEach((n) => { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); });
+    k = Math.min(W / (x1 - x0 + 120), H / (y1 - y0 + 120), 3); tx = W / 2 - ((x0 + x1) / 2) * k; ty = H / 2 - ((y0 + y1) / 2) * k;
+  }
+  function frame() { for (let i = 0; i < 2 && alpha > 0.016; i++) tick(); draw(); requestAnimationFrame(frame); }
+  const reheat = (a = 0.5) => { alpha = Math.max(alpha, a); };
+
+  // ---- interaction ---------------------------------------------------------------------------
+  const world = (ev) => { const r = canvas.getBoundingClientRect(); return [(ev.clientX - r.left - tx) / k, (ev.clientY - r.top - ty) / k]; };
+  function pick(ev) {
+    const [wx, wy] = world(ev); let best = null, bd = Infinity;
+    for (const n of connected) { if (!visibleNode(n)) continue; const d = Math.hypot(n.x - wx, n.y - wy); if (d < Math.max(n.r + 3, 9 / k) && d < bd) { best = n; bd = d; } }
+    return best;
+  }
+  canvas.addEventListener("mousedown", (ev) => { moved = false; last = [ev.clientX, ev.clientY]; dragNode = pick(ev); panning = !dragNode; canvas.classList.add("dragging"); });
+  window.addEventListener("mouseup", () => { if (dragNode && !moved) select(dragNode); else if (panning && !moved) select(null); dragNode = null; panning = false; canvas.classList.remove("dragging"); });
+  window.addEventListener("mousemove", (ev) => {
+    if (last && (dragNode || panning) && ev.buttons) {
+      const dx = ev.clientX - last[0], dy = ev.clientY - last[1]; if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+      if (dragNode && moved) { const [wx, wy] = world(ev); dragNode.x = wx; dragNode.y = wy; reheat(0.25); } else if (panning) { tx += dx; ty += dy; }
+      last = [ev.clientX, ev.clientY]; return;
+    }
+    if (ev.target !== canvas) return;
+    const n = pick(ev); hovered = n; canvas.style.cursor = n ? "pointer" : "grab";
+    const tip = $("tip");
+    if (n) { tip.style.display = "block"; tip.innerHTML = ""; const b = document.createElement("b"); b.textContent = n.id; const s = document.createElement("span"); s.textContent = n.service + " · needs " + new Set(n.in.map((e) => e.label)).size + " · feeds " + n.out.length; tip.append(b, s);
+      const r = canvas.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - r.left + 14, W - 330) + "px"; tip.style.top = ev.clientY - r.top + 14 + "px"; } else tip.style.display = "none";
+  });
+  canvas.addEventListener("mouseleave", () => { hovered = null; $("tip").style.display = "none"; });
+  canvas.addEventListener("wheel", (ev) => {
+    ev.preventDefault(); const r = canvas.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top, nk = Math.max(0.15, Math.min(8, k * Math.exp(-ev.deltaY * 0.0015)));
+    tx = px - ((px - tx) / k) * nk; ty = py - ((py - ty) / k) * nk; k = nk;
+  }, { passive: false });
+  window.addEventListener("resize", () => { resize(); });
+
+  function select(n) { selected = n; renderSide(); }
+  function goTo(n) { select(n); const cx = W / 2, cy = H / 2; k = Math.max(k, 1.4); tx = cx - n.x * k; ty = cy - n.y * k; }
+
+  // ---- side panel ----------------------------------------------------------------------------
+  function el(tag, props = {}, ...kids) { const e = document.createElement(tag); Object.assign(e, props); kids.forEach((c) => e.append(c)); return e; }
+  function groupBy(list, key) { const m = new Map(); list.forEach((x) => { const v = key(x); (m.get(v) || m.set(v, []).get(v)).push(x); }); return m; }
+
+  function renderSide() {
+    const side = $("side"); side.innerHTML = "";
+    if (!selected) {
+      side.append(el("h2", { textContent: "How to read this" }),
+        el("p", { className: "hint", textContent: "Each arrow points from the tool that supplies a value to the tool that needs it. The label on the arrow is the input being supplied. Click a node to see what it needs and what it feeds; drag to move; scroll to zoom." }));
+      side.append(el("h2", { textContent: "Services (click to hide)" }));
+      const legend = el("div", { className: "legend" });
+      services.forEach((s) => {
+        const b = el("button", { className: serviceOff.has(s) ? "off" : "", title: "Show / hide " + s }, el("span", { className: "dot" }), el("span", { textContent: s }), el("span", { className: "n", textContent: String(serviceCounts[s]) }));
+        b.firstChild.style.background = colorOf(s);
+        b.onclick = () => { serviceOff.has(s) ? serviceOff.delete(s) : serviceOff.add(s); reheat(0.4); renderSide(); };
+        legend.append(b);
+      });
+      side.append(legend);
+      if (isolated.length) {
+        const d = el("details", {}, el("summary", { textContent: isolated.length + " tools with no discovered dependencies" }));
+        isolated.forEach((n) => d.append(el("div", { className: "hint", textContent: n.id, style: "word-break:break-all" })));
+        side.append(el("h2", { textContent: "Not shown" }), d);
+      }
+      return;
+    }
+    const n = selected;
+    side.append(el("div", { className: "slug", textContent: n.id }));
+    const chip = el("span", { className: "chip", textContent: n.service }); chip.style.background = colorOf(n.service); side.append(chip);
+    if (n.desc) side.append(el("p", { className: "desc", textContent: n.desc }));
+
+    side.append(el("h2", { textContent: "Needs (inputs supplied by other tools)" }));
+    if (!n.in.length) side.append(el("p", { className: "hint", textContent: "Nothing: this tool can run with what the user provides." }));
+    for (const [label, es] of groupBy(n.in, (e) => e.label)) {
+      side.append(el("div", {}, el("span", { className: "param", textContent: label }), el("span", { className: "hint", textContent: "from one of:" })));
+      es.forEach((e) => side.append(el("a", { className: "link", textContent: e.a.id, onclick: () => goTo(e.a) })));
+    }
+    side.append(el("h2", { textContent: "Feeds (tools that use its output)" }));
+    if (!n.out.length) side.append(el("p", { className: "hint", textContent: "No tool depends on this one." }));
+    for (const [label, es] of groupBy(n.out, (e) => e.label)) {
+      side.append(el("div", {}, el("span", { className: "param", textContent: label }), el("span", { className: "hint", textContent: "→ " + es.length + " tool" + (es.length > 1 ? "s" : "") })));
+      es.forEach((e) => side.append(el("a", { className: "link", textContent: e.b.id, onclick: () => goTo(e.b) })));
+    }
+  }
+
+  // ---- header controls -----------------------------------------------------------------------
+  $("stats").textContent = DATA.nodes.length + " tools · " + connected.length + " connected · " + edges.length + " dependencies";
+  const sel = $("labelFilter");
+  sel.append(el("option", { value: "", textContent: "All edge labels" }));
+  Object.keys(labelCounts).sort((a, b) => labelCounts[b] - labelCounts[a]).forEach((l) => sel.append(el("option", { value: l, textContent: l + " (" + labelCounts[l] + ")" })));
+  sel.onchange = () => { labelFilter = sel.value; reheat(0.4); };
+  $("search").oninput = (ev) => { query = ev.target.value; const q = query.trim().toLowerCase(); if (q) { const m = connected.filter((n) => n.id.toLowerCase().includes(q)); if (m.length === 1) goTo(m[0]); } };
+  $("fit").onclick = fit;
+  $("clear").onclick = () => { selected = null; query = ""; $("search").value = ""; labelFilter = ""; sel.value = ""; serviceOff.clear(); renderSide(); reheat(0.4); fit(); };
+
+  if (!edges.length) { document.querySelector("aside").textContent = "This graph has no edges."; }
+  resize(); renderSide();
+  for (let i = 0; i < 260; i++) tick();   // settle most of the layout before the first paint
+  fit(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

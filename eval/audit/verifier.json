@@ -1,0 +1,548 @@
+{
+ "what": "One real run of the opt-in LLM verifier (DEP_GRAPH_LLM=verify) on the GitHub catalog, then a blind check of its decisions: every edge it dropped plus a random sample (seed 5) of the doubtful edges it kept, judged by a neutral and a skeptical judge that saw no scores and not which group an edge was in (eval/audit_verifier.ts).",
+ "caveats": "Judges share a model family with the author. 52 edges; the kept sample is 30 of 114. Judge labels are opinions about API semantics. Whether a GraphQL node id counts as a valid supply for an id input is a judgment call, and most of the wrongful drops are of that kind.",
+ "summary": {
+  "model": "openai/gpt-4o via the assessment gateway",
+  "requests": 6,
+  "promptTokens": 19973,
+  "completionTokens": 3050,
+  "edgesReviewed": 136,
+  "edgesDropped": 22,
+  "edgesBefore": 1005,
+  "edgesAfter": 983,
+  "dropped": {
+   "n": 22,
+   "invalidUnderBoth": 16,
+   "validUnderBoth": 5,
+   "neutralInvalid": 16,
+   "skepticInvalid": 17
+  },
+  "keptDoubtfulSample": {
+   "n": 30,
+   "neutralValid": 30,
+   "skepticValid": 29
+  }
+ },
+ "edges": [
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_GET_PROJECT_PERMISSION_FOR_A_USER",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs a Projects (classic) project_id, but GET_A_PROJECT is the Projects V2 endpoint (classic was sunset) and returns a V2 project id, a different kind of entity that classic endpoints do not accept.",
+   "skepticReason": "GET_PROJECT_PERMISSION_FOR_A_USER is a classic-project endpoint, while GET_A_PROJECT returns a Projects V2 id/number that is not a classic project_id and itself requires project_number."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_LIST_PROJECT_COLLABORATORS",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "LIST_PROJECT_COLLABORATORS takes a Projects (classic) database id, whereas GET_A_PROJECT returns a Projects V2 project id and its own card says classic is a separate, sunset API.",
+   "skepticReason": "The consumer needs a Projects (classic) database id, while GITHUB_GET_A_PROJECT returns a Projects V2 project id; the classic API is sunset and the two id spaces are different."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_AN_ISSUE",
+   "to": "GITHUB_ADD_SUB_ISSUE",
+   "label": "issue_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_AN_ISSUE (given owner, repo, issue_number) returns the issue's top-level GraphQL node_id in its response schema, which is the global node ID that ADD_SUB_ISSUE requires, and it does not need that ID as input.",
+   "skepticReason": "GET_AN_ISSUE's response includes a top-level node_id described as the GraphQL node identifier (I_kwDO...), exactly what the parent issue_id requires, and its inputs (owner, repo, issue_number) are ones the user normally\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+   "to": "GITHUB_DELETE_WORKFLOW_RUN_LOGS",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id[] for a repo's runs, which is exactly the run_id that DELETE_WORKFLOW_RUN_LOGS takes in the same repository.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs[].id for runs in the given repo, which is the run_id DELETE_WORKFLOW_RUN_LOGS requires; its workflow_id input does not depend on run_id."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CHECK_IF_PULL_REQUEST_MERGED",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's pull requests (PullRequestSimple objects include the PR number), which is the pull_number CHECK_IF_PULL_REQUEST_MERGED needs for the same owner/repo.",
+   "skepticReason": "GET_PULL_REQUESTS lists a repo's pull requests and each object carries a 'number' field (schema: Pull request number identifier within the repository), which is the pull_number the merged-check endpoint takes, with the \u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_PUBLIC_KEYS_FOR_A_USER",
+   "to": "GITHUB_CREATE_OR_UPDATE_AN_ORGANIZATION_SECRET",
+   "label": "key_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "key_id must be the ID of the organization's Actions public key, but LIST_PUBLIC_KEYS_FOR_A_USER returns a user's SSH keys, which is the wrong kind of key and the wrong scope for encrypting org secrets.",
+   "skepticReason": "key_id must be the id of the organization's Actions secrets public key (from 'Get an organization public key'), but LIST_PUBLIC_KEYS_FOR_A_USER returns a user's SSH authentication keys (keys.id[]), a completely differen\u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_LIST_PROJECT_COLUMNS",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "LIST_PROJECT_COLUMNS needs a Projects (classic) project_id, but GET_A_PROJECT is the Projects V2 REST endpoint, which returns a V2 project id and has no classic columns.",
+   "skepticReason": "LIST_PROJECT_COLUMNS needs a Projects (classic) project_id, while GITHUB_GET_A_PROJECT returns a Projects V2 project, which has no classic columns and a different id."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_REQUEST_REVIEWERS_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists pull requests for the given owner/repo (each object carries the PR number), so it supplies the pull_number REQUEST_REVIEWERS_FOR_A_PULL_REQUEST needs, and it does not itself need a PR number.",
+   "skepticReason": "GET_PULL_REQUESTS needs only repo and owner (which the consumer also requires), and each item in its pull_requests array has a top-level integer 'number' (confirmed in the catalog output schema), which is the PR number \u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION",
+   "to": "GITHUB_ADD_RUNNER_LABELS",
+   "label": "runner_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "ADD_RUNNER_LABELS is a repository-level endpoint that needs a runner registered at that repo, while the producer lists organization-level self-hosted runners, so its ids are the wrong scope.",
+   "skepticReason": "ADD_RUNNER_LABELS is a repository-level endpoint (/repos/{owner}/{repo}/actions/runners/{id}/labels) but the producer lists organization-level runners, so the IDs are wrong scope and may not be registered to the target \u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_UPDATE_A_PULL_REQUEST_BRANCH",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS returns the repo's pull requests including their numbers, which can be passed directly as pull_number to UPDATE_A_PULL_REQUEST_BRANCH for the same owner/repo.",
+   "skepticReason": "GET_PULL_REQUESTS takes repo/owner and returns pull_requests[].number, the repo-scoped PR number that UPDATE_A_PULL_REQUEST_BRANCH needs (state filter can restrict to open PRs)."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_CREATE_DRAFT_ITEM_FOR_USER_PROJECT",
+   "label": "project_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_USER_PROJECTS (needing only username) returns each user-owned ProjectV2's number, which is the project_number CREATE_DRAFT_ITEM_FOR_USER_PROJECT needs for the same user.",
+   "skepticReason": "LIST_USER_PROJECTS returns each user project's number (the integer in the project URL) for the same username, which is exactly the project_number CREATE_DRAFT_ITEM_FOR_USER_PROJECT requires."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_OWNED_PACKAGE_VERSIONS",
+   "to": "GITHUB_DELETE_PACKAGE_VERSION_FOR_A_USER",
+   "label": "package_version_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_OWNED_PACKAGE_VERSIONS returns package_versions.id[] for a user-owned package given its type and name, which are the same package-version ids the user-scoped delete endpoint takes when the user is the authenticated\u2026",
+   "skepticReason": "LIST_OWNED_PACKAGE_VERSIONS returns package_versions.id[] for a given package_name and package_type, and deleting a version is only allowed for the authenticated user's own packages, so the self-only scope matches."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_DISCUSSIONS",
+   "to": "GITHUB_DELETE_TEAM_DISCUSSION_REACTION",
+   "label": "discussion_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_DISCUSSIONS for the same org and team_slug returns discussions.number[], which is the discussion_number the reaction-delete tool requires, and it does not need that number as input.",
+   "skepticReason": "LIST_DISCUSSIONS for the same org and team_slug returns discussions.number, which is the discussion_number needed to delete a reaction on a team discussion."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_GIST_COMMENTS",
+   "to": "GITHUB_GET_GIST_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_GIST_COMMENTS for a gist_id returns data.id[], the comment ids that GET_GIST_COMMENT takes for that same gist, and the consumer's own card says to obtain comment_id from listing gist comments.",
+   "skepticReason": "LIST_GIST_COMMENTS returns data.id[] for comments on the same gist_id, which is the comment_id GET_GIST_COMMENT takes, and the producer does not need comment_id."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+   "label": "projectId",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_A_PROJECT returns the Projects V2 project's GraphQL node_id (e.g. 'PVT_kwDO...'), which matches the global node ID projectId that UPDATE_USER_PROJECT_ITEM requires, and it needs only the project number.",
+   "skepticReason": "GET_A_PROJECT (username defaults to the authenticated user) returns a node_id described as the GraphQL project node ID (PVT_kwDO...), which matches the projectId the UpdateProjectV2ItemFieldValue call needs; the numeric\u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_GET_PROJECT_PERMISSION_FOR_A_USER",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "GET_PROJECT_PERMISSION_FOR_A_USER needs a Projects (classic) project_id, but LIST_USER_PROJECTS uses the Projects V2 GraphQL API and returns V2 projects whose ids are not classic ids.",
+   "skepticReason": "GET_PROJECT_PERMISSION_FOR_A_USER targets a classic project's numeric project_id, but LIST_USER_PROJECTS explicitly uses the Projects V2 GraphQL API (classic is sunset), so its id/number/node_id values are V2 identifier\u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_PROJECT_ITEMS_FOR_USER",
+   "to": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+   "label": "itemId",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PROJECT_ITEMS_FOR_USER returns items.node_id[] (the global node ID of each ProjectV2 item), which is the itemId UPDATE_USER_PROJECT_ITEM needs, and its inputs are only username and project_number.",
+   "skepticReason": "LIST_PROJECT_ITEMS_FOR_USER returns items.node_id (described as the project item's node ID, PVTI_...) for a user-owned ProjectV2, which is the global node ID itemId expects; the numeric items.id is a decoy but node_id i\u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_CUSTOM_PROPERTIES_FOR_AN_ORGANIZATION",
+   "to": "GITHUB_CREATE_OR_UPDATE_CUSTOM_PROPERTY_ORG",
+   "label": "custom_property_name",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "custom_property_name is a name the caller chooses (the tool creates it when it does not exist and 'name must be unique for creation'), so it is free text rather than something to look up, even though listing existing de\u2026",
+   "skepticReason": "custom_property_name is a unique name the caller chooses when creating (the tool is create-or-update), so it is user-chosen free text rather than something that must be looked up, even though the list tool shows existin\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_REMOVE_REVIEW_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's PRs and each PR object includes a `number` field (confirmed in its output schema), which is the pull_number the same repo/owner consumer needs.",
+   "skepticReason": "GET_PULL_REQUESTS takes repo/owner and returns pull_requests[].number (a required field in its output schema), the same repo-scoped PR number REMOVE_REVIEW_REQUEST expects."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "to": "GITHUB_LIST_REVIEWS_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns repo-scoped PR objects including `number` (per its output schema), usable directly as pull_number once the user supplies a commit_sha.",
+   "skepticReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns pull_requests.number for PRs in the same repo, and any PR number is valid for listing reviews, so the value passes straight through once a commit_sha is supplied."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CREATE_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS returns repo-level PR objects with `number`, which is exactly the pull_number for creating a review comment.",
+   "skepticReason": "GET_PULL_REQUESTS returns each PR's number (PullRequestSimple.number) for the same repo, usable as pull_number, and head.sha can supply commit_id."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_SUB_ISSUES",
+   "to": "GITHUB_ADD_SUB_ISSUE",
+   "label": "issue_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "ADD_SUB_ISSUE needs the node ID of the parent issue, but LIST_SUB_ISSUES returns the node_ids of the child sub-issues (the producer itself needs the parent's issue_number), so the returned value is the wrong entity.",
+   "skepticReason": "issue_id must be the node ID of the parent issue, but LIST_SUB_ISSUES returns node_ids of the child sub-issues (and needs the parent's issue_number as input), not the parent's node ID."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_GIST_COMMENTS",
+   "to": "GITHUB_UPDATE_A_GIST_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_GIST_COMMENTS takes only gist_id (also a consumer input) and returns data.id for each comment on that gist, which is the comment_id for UPDATE_A_GIST_COMMENT.",
+   "skepticReason": "LIST_GIST_COMMENTS needs only gist_id (already required by the consumer) and returns data.id[], which is the gist comment id that UPDATE_A_GIST_COMMENT takes as comment_id."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_PUBLIC_KEYS_FOR_A_USER",
+   "to": "GITHUB_CREATE_OR_UPDATE_AN_ENVIRONMENT_SECRET",
+   "label": "key_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "key_id must be the ID of the environment's public key (from Get an environment public key), but LIST_PUBLIC_KEYS_FOR_A_USER returns a user's SSH key IDs, which are a different kind of key and cannot be used for secret e\u2026",
+   "skepticReason": "key_id must be the ID of the environment public key (from the Get an environment public key endpoint), but this producer lists a user's SSH signing/auth keys, a completely different kind of key that cannot encrypt a rep\u2026"
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_PROJECT_ITEMS_FOR_USER",
+   "to": "GITHUB_UPDATE_USER_LISTS_FOR_ITEM",
+   "label": "item_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "UPDATE_USER_LISTS_FOR_ITEM needs the node ID of a repository (or similar item), but LIST_PROJECT_ITEMS_FOR_USER returns Projects V2 item node IDs (PVTI_) and issue/PR content ids, not a repository node ID and not an ite\u2026",
+   "skepticReason": "item_id must be the node ID of a repository/issue/PR to put in a user list, but LIST_PROJECT_ITEMS_FOR_USER's items.id and items.node_id identify the ProjectV2 item wrapper (PVTI_...), and the content node ID is not ret\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_DISCUSSIONS",
+   "to": "GITHUB_CREATE_REACTION_FOR_A_TEAM_DISCUSSION_COMMENT",
+   "label": "discussion_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_DISCUSSIONS takes the same org and team_slug as the consumer and returns discussions.number, the team discussion number that discussion_number requires.",
+   "skepticReason": "LIST_DISCUSSIONS lists team discussions for the same org and team_slug and returns discussions.number, which is the discussion_number the team-discussion comment reaction endpoint needs."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "to": "GITHUB_CREATE_A_REPLY_FOR_A_REVIEW_COMMENT",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns repo-scoped PR objects with `number`, which can be passed as pull_number for replying to a review comment.",
+   "skepticReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns pull_requests[].number (required in its schema) for PRs in the same repo, usable as pull_number when the agent has a commit_sha, and it does not need pull_number itsel\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_FIND_PULL_REQUESTS",
+   "to": "GITHUB_CHECK_IF_PULL_REQUEST_HAS_BEEN_MERGED",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "FIND_PULL_REQUESTS (search) has no required inputs and returns pull_requests.number for matching PRs, usable as pull_number once the owner/repo of the chosen PR is known from the result.",
+   "skepticReason": "FIND_PULL_REQUESTS needs no inputs and returns pull_requests.number for repo-filtered PRs, which is the pull_number for the merged check provided the agent filters to the same owner/repo."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_OWNED_PACKAGE_VERSIONS",
+   "to": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_A_USER",
+   "label": "package_version_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_OWNED_PACKAGE_VERSIONS returns package_versions.id (with deleted_at) for a user-owned package of the given type and name, which is the package_version_id for the user-scoped restore, as the consumer's own descripti\u2026",
+   "skepticReason": "LIST_OWNED_PACKAGE_VERSIONS takes package_type and package_name, supports state=deleted, and returns package_versions.id, the numeric version ID the restore call needs; restore requires the owner, which in practice is t\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_REQUEST_REVIEWERS",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's PRs, each with a `number` field, which is the pull_number REQUEST_REVIEWERS needs.",
+   "skepticReason": "GET_PULL_REQUESTS lists PRs for the same owner/repo and its PullRequestSimple schema includes number (the card list is truncated), which is the pull_number REQUEST_REVIEWERS needs."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PROJECT_ITEMS_FOR_USER",
+   "to": "GITHUB_DELETE_PROJECT_ITEM_FOR_USER",
+   "label": "item_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PROJECT_ITEMS_FOR_USER takes the same username and project_number and returns items.node_id, the PVTI_ GraphQL node ID of each project item that DELETE_PROJECT_ITEM_FOR_USER requires as item_id.",
+   "skepticReason": "LIST_PROJECT_ITEMS_FOR_USER takes the same username and project_number as the consumer and returns items.node_id (the project item's node ID, PVTI_...), which is what the GraphQL deleteProjectV2Item item_id needs."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS",
+   "to": "GITHUB_CHECK_IF_PULL_REQUEST_HAS_BEEN_MERGED",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PULL_REQUESTS takes the same owner and repo and returns pull_requests.number, which is the pull_number for the merged check.",
+   "skepticReason": "LIST_PULL_REQUESTS explicitly returns pull_requests.number[] for the same owner/repo, directly usable as pull_number, and it also exposes merged_at."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_ADD_OR_UPDATE_TEAM_PROJECT_PERMISSIONS",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs the numeric ID of an organization classic project, while GET_A_PROJECT retrieves a Projects V2 project by number (and classic projects were sunset), so it is the wrong kind of project and its id is no\u2026",
+   "skepticReason": "The consumer needs the numeric ID of a classic (V1) project, but GET_A_PROJECT is explicitly the Projects V2 REST API, so its id is a V2 project database id (and it needs a V2 project_number the agent would not have); t\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+   "to": "GITHUB_LIST_WORKFLOW_RUN_ARTIFACTS",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id for runs in the same repo, which is the run_id LIST_WORKFLOW_RUN_ARTIFACTS needs.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id for runs in the same repo, which is the run_id that LIST_WORKFLOW_RUN_ARTIFACTS requires."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+   "label": "projectId",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_USER_PROJECTS returns each user project's node_id (Projects V2 GraphQL), which is the global project node ID (PVT_...) the consumer's projectId requires, and it only needs the username.",
+   "skepticReason": "LIST_USER_PROJECTS is a Projects V2 GraphQL listing whose node_id field is documented as the project's node ID (PVT_...), which is the global projectId UPDATE_USER_PROJECT_ITEM requires, and both are user-scoped."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_ADD_PROJECT_COLLABORATOR",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "ADD_PROJECT_COLLABORATOR needs the id of an organization classic project, whereas GET_A_PROJECT returns a Projects V2 project (user or org) by number, so the entity kind does not match.",
+   "skepticReason": "ADD_PROJECT_COLLABORATOR targets an organization classic project id, but GET_A_PROJECT is the Projects V2 endpoint (classic sunset April 2025) whose id is a V2 project id and which needs project_number as input, so the \u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "to": "GITHUB_CREATE_A_CODESPACE_FROM_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "The commit-associated PR list returns SimplePullRequest objects that include the 'number' field (the card's list is truncated), which is the repo-scoped pull_number the codespace tool needs, and the producer needs only \u2026",
+   "skepticReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns SimplePullRequest.number for PRs in the same repo, usable as pull_number. It needs a commit_sha, and the agent must pick an open PR."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_REMOVE_USER_AS_A_COLLABORATOR",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs the database id of an organization project (classic), but GET_A_PROJECT is explicitly Projects V2 (the card says classic was sunset), so its id is a different kind of entity and not accepted as a clas\u2026",
+   "skepticReason": "The consumer needs the database id of an organization classic project, but GET_A_PROJECT is the Projects V2 API whose id/number are V2 identifiers and it requires project_number as input, so it cannot supply a classic p\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+   "to": "GITHUB_DOWNLOAD_WORKFLOW_RUN_LOGS",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id[] in the same repository, which is exactly the run_id for downloading logs, and its own input is workflow_id, not run_id.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id[] for runs in the same owner/repo, which is exactly the run_id that DOWNLOAD_WORKFLOW_RUN_LOGS takes, and it does not need run_id itself."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "to": "GITHUB_REOPEN_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "The producer returns same-repo pull requests including their 'number' (the card's list is truncated), which is the pull_number needed to reopen, though results may include merged PRs that cannot be reopened.",
+   "skepticReason": "REOPEN_PULL_REQUEST needs a closed, unmerged PR, but the producer only returns merged PRs (default-branch commits) or open PRs (other branches), never closed-unmerged ones, so it cannot supply a reopenable pull_number."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_DELETE_PENDING_REVIEW",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's pull requests with only repo/owner required, and each PullRequestSimple has a 'number' field that is the pull_number for the pending-review deletion.",
+   "skepticReason": "GET_PULL_REQUESTS returns each PR's number for the same owner/repo, which is the pull_number DELETE_PENDING_REVIEW needs."
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "to": "GITHUB_REMOVE_REVIEW_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "PRs listed by commit carry a 'number' field (SimplePullRequest) of the same repository, usable directly as pull_number, and the producer does not itself require pull_number.",
+   "skepticReason": "LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT returns pull_requests[].number (required field in its schema) for PRs in the same repo, usable as pull_number, provided the agent already has a commit_sha; a narrower but corr\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_A_COMMIT",
+   "to": "GITHUB_LIST_BRANCHES_FOR_HEAD_COMMIT",
+   "label": "commit_sha",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_A_COMMIT accepts a branch, tag or SHA as ref and returns the full commit 'sha', which is the commit_sha that LIST_BRANCHES_FOR_HEAD_COMMIT needs, and the producer's required ref is not itself commit_sha-only.",
+   "skepticReason": "GET_A_COMMIT accepts a branch/tag/short SHA as ref and returns the top-level full commit sha, which resolves a ref to the full SHA that LIST_BRANCHES_FOR_HEAD_COMMIT requires, within the same repo."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_CREATE_A_TREE",
+   "to": "GITHUB_GET_A_TREE",
+   "label": "tree_sha",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_TREE returns the new tree's 'sha', which is a tree SHA that GET_A_TREE accepts as tree_sha and the producer does not need tree_sha, although it is a write operation and not a lookup of an existing tree (a branc\u2026",
+   "skepticReason": "CREATE_A_TREE is a write action requiring a caller-built `tree` array and returns the sha of a brand-new tree the agent just defined, not a lookup of an existing tree, so it is circular and side-effecting; tree_sha shou\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_ISSUE_COMMENTS",
+   "to": "GITHUB_LIST_REACTIONS_FOR_AN_ISSUE_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_ISSUE_COMMENTS returns comments.id[] for a given issue, which is the issue-comment id that LIST_REACTIONS_FOR_AN_ISSUE_COMMENT takes as comment_id, and the producer needs issue_number rather than comment_id.",
+   "skepticReason": "GET_ISSUE_COMMENTS returns comments.id for each comment on an issue in the same repo, and that numeric ID is the comment_id the issue-comment reactions endpoint takes."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_REMOVE_A_PROJECT_FROM_A_TEAM",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer's project_id is a classic organization/team project id, while GET_A_PROJECT returns a Projects V2 project (its description says classic was sunset), so the ids are different entities.",
+   "skepticReason": "REMOVE_A_PROJECT_FROM_A_TEAM operates on a classic project id associated with a team, but GET_A_PROJECT returns a Projects V2 id and requires project_number, so it cannot supply that classic project_id."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT needs a classic project id, but GET_A_PROJECT retrieves a Projects V2 project, whose id is not a classic project id.",
+   "skepticReason": "The consumer needs a Projects (classic) database id for an org team, while GITHUB_GET_A_PROJECT returns a Projects V2 project (its own description says classic was sunset), which is a different entity with a different i\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CREATE_A_REPLY_FOR_A_REVIEW_COMMENT",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS returns PullRequestSimple items with the repo-scoped 'number' field, which is the pull_number needed to reply to a review comment, and it requires only repo/owner.",
+   "skepticReason": "GET_PULL_REQUESTS (repo, owner) returns pull_requests[].number, the repo-scoped PR number needed as pull_number for the reply endpoint."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_LIST_OWNED_PACKAGE_VERSIONS",
+   "to": "GITHUB_GET_A_PACKAGE_VERSION_FOR_A_USER",
+   "label": "package_version_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_OWNED_PACKAGE_VERSIONS returns package_versions.id[], the same numeric package-version id (user-scope packages) that the consumer needs, though it only covers the authenticated user's own packages, so for another u\u2026",
+   "skepticReason": "LIST_OWNED_PACKAGE_VERSIONS returns package_versions.id[], the same numeric version id, for the given package_name and package_type. Caveat: it only works when username is the authenticated user, since a separate per-us\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+   "to": "GITHUB_APPROVE_WORKFLOW_RUN_FOR_FORK_PULL_REQUEST",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id[] in the same repo, which is the run_id to approve, and its required workflow_id is a different input.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs[].id in the same repo, which is the run_id the approve endpoint takes (the agent can filter status for runs awaiting approval); its workflow_id input is obtainable\u2026"
+  },
+  {
+   "group": "kept",
+   "from": "GITHUB_LIST_TEAMS",
+   "to": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS for an org returns teams.slug[], which is the org-scoped team_slug the consumer requires alongside the same org, and the producer needs only org.",
+   "skepticReason": "LIST_TEAMS takes the same org the consumer requires and returns teams.slug[], which is exactly the team_slug (same org scope, same kind of entity)."
+  },
+  {
+   "group": "dropped",
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_CREATE_A_PROJECT_COLUMN",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_PROJECT_COLUMN requires a classic project id, but GET_A_PROJECT returns a Projects V2 project (classic was sunset), so its id/number cannot be used as a classic project_id.",
+   "skepticReason": "CREATE_A_PROJECT_COLUMN needs a classic project id, while GET_A_PROJECT returns a Projects V2 project id and itself requires a project_number, so the id is the wrong kind of project and would 404 against the classic col\u2026"
+  }
+ ]
+}

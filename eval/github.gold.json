@@ -1,0 +1,209 @@
+{
+  "_comment": "Hand-labeled from GitHub REST semantics BEFORE the matcher was written. `accept` = tools that can validly supply the value (any one counts as a hit). `reject` = plausible-looking producers that are wrong (wrong entity, wrong scope, or circular). Producers not listed in either are 'unjudged' and only reported. `negatives` = required params that must get NO edge. `ambiguous` = judgment calls, reported but never scored.",
+  "toolkit": "github",
+  "cases": [
+    {
+      "consumer": "GITHUB_CREATE_AN_ISSUE_COMMENT",
+      "param": "issue_number",
+      "source": "readme",
+      "accept": ["GITHUB_LIST_REPOSITORY_ISSUES", "GITHUB_CREATE_AN_ISSUE", "GITHUB_LIST_ISSUES_ASSIGNED_TO_THE_AUTHENTICATED_USER", "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER"],
+      "reject": ["GITHUB_LIST_ISSUE_COMMENTS", "GITHUB_LIST_ISSUE_COMMENTS_FOR_A_REPOSITORY", "GITHUB_GET_AN_ISSUE", "GITHUB_CREATE_AN_ISSUE_COMMENT", "GITHUB_LIST_ISSUE_TYPES"]
+    },
+    {
+      "consumer": "GITHUB_CLOSE_ISSUE",
+      "param": "issue_number",
+      "accept": ["GITHUB_LIST_REPOSITORY_ISSUES", "GITHUB_CREATE_AN_ISSUE"],
+      "reject": ["GITHUB_GET_AN_ISSUE", "GITHUB_LIST_ISSUE_TYPES"]
+    },
+    {
+      "consumer": "GITHUB_MERGE_A_PULL_REQUEST",
+      "param": "pull_number",
+      "source": "readme",
+      "accept": ["GITHUB_LIST_PULL_REQUESTS", "GITHUB_CREATE_A_PULL_REQUEST", "GITHUB_FIND_PULL_REQUESTS"],
+      "reject": ["GITHUB_GET_A_PULL_REQUEST", "GITHUB_CREATE_A_CHECK_RUN", "GITHUB_GET_A_WORKFLOW_RUN", "GITHUB_GET_CHECK_RUN"]
+    },
+    {
+      "consumer": "GITHUB_CLOSE_PULL_REQUEST",
+      "param": "pull_number",
+      "accept": ["GITHUB_LIST_PULL_REQUESTS", "GITHUB_CREATE_A_PULL_REQUEST"],
+      "reject": ["GITHUB_GET_A_PULL_REQUEST", "GITHUB_CREATE_A_CHECK_RUN"]
+    },
+    {
+      "consumer": "GITHUB_UPDATE_AN_ISSUE_COMMENT",
+      "param": "comment_id",
+      "accept": ["GITHUB_LIST_ISSUE_COMMENTS", "GITHUB_LIST_ISSUE_COMMENTS_FOR_A_REPOSITORY", "GITHUB_CREATE_AN_ISSUE_COMMENT"],
+      "reject": ["GITHUB_LIST_GIST_COMMENTS", "GITHUB_LIST_COMMIT_COMMENTS", "GITHUB_LIST_REVIEW_COMMENTS_ON_A_PULL_REQUEST", "GITHUB_CREATE_A_GIST_COMMENT", "GITHUB_CREATE_A_COMMIT_COMMENT", "GITHUB_GET_AN_ISSUE_COMMENT"]
+    },
+    {
+      "consumer": "GITHUB_UPDATE_A_GIST_COMMENT",
+      "param": "comment_id",
+      "accept": ["GITHUB_LIST_GIST_COMMENTS", "GITHUB_CREATE_A_GIST_COMMENT"],
+      "reject": ["GITHUB_LIST_ISSUE_COMMENTS", "GITHUB_LIST_COMMIT_COMMENTS", "GITHUB_CREATE_AN_ISSUE_COMMENT"]
+    },
+    {
+      "consumer": "GITHUB_UPDATE_A_COMMIT_COMMENT",
+      "param": "comment_id",
+      "accept": ["GITHUB_LIST_COMMIT_COMMENTS", "GITHUB_LIST_COMMIT_COMMENTS_FOR_A_REPOSITORY", "GITHUB_CREATE_A_COMMIT_COMMENT"],
+      "reject": ["GITHUB_LIST_GIST_COMMENTS", "GITHUB_LIST_ISSUE_COMMENTS", "GITHUB_GET_COMMIT_COMMENT"]
+    },
+    {
+      "consumer": "GITHUB_GET_GIST",
+      "param": "gist_id",
+      "accept": ["GITHUB_LIST_GISTS_FOR_THE_AUTHENTICATED_USER", "GITHUB_LIST_GISTS_FOR_A_USER", "GITHUB_LIST_PUBLIC_GISTS", "GITHUB_LIST_STARRED_GISTS", "GITHUB_CREATE_A_GIST"],
+      "reject": ["GITHUB_GET_GIST", "GITHUB_LIST_GIST_COMMENTS"]
+    },
+    {
+      "consumer": "GITHUB_UPDATE_A_RELEASE",
+      "param": "release_id",
+      "accept": ["GITHUB_LIST_RELEASES", "GITHUB_CREATE_A_RELEASE", "GITHUB_GET_THE_LATEST_RELEASE", "GITHUB_GET_A_RELEASE_BY_TAG_NAME"],
+      "reject": ["GITHUB_GET_A_RELEASE", "GITHUB_GET_A_RELEASE_ASSET"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_REPOSITORY_WEBHOOK",
+      "param": "hook_id",
+      "accept": ["GITHUB_LIST_REPOSITORY_WEBHOOKS", "GITHUB_CREATE_A_REPOSITORY_WEBHOOK"],
+      "reject": ["GITHUB_LIST_ORGANIZATION_WEBHOOKS", "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK", "GITHUB_GET_A_REPOSITORY_WEBHOOK"]
+    },
+    {
+      "consumer": "GITHUB_DELETE_ORGANIZATION_WEBHOOK",
+      "param": "hook_id",
+      "accept": ["GITHUB_LIST_ORGANIZATION_WEBHOOKS", "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK"],
+      "reject": ["GITHUB_LIST_REPOSITORY_WEBHOOKS", "GITHUB_CREATE_A_REPOSITORY_WEBHOOK"]
+    },
+    {
+      "consumer": "GITHUB_CANCEL_WORKFLOW_RUN",
+      "param": "run_id",
+      "accept": ["GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY", "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW"],
+      "reject": ["GITHUB_LIST_CHECK_RUNS_FOR_A_REF", "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY", "GITHUB_GET_A_WORKFLOW_RUN", "GITHUB_CREATE_A_CHECK_RUN"]
+    },
+    {
+      "consumer": "GITHUB_GET_WORKFLOW_RUN_JOB",
+      "param": "job_id",
+      "accept": ["GITHUB_LIST_JOBS_FOR_A_WORKFLOW_RUN", "GITHUB_LIST_JOBS_FOR_A_WORKFLOW_RUN_ATTEMPT"],
+      "reject": ["GITHUB_GET_WORKFLOW_RUN_JOB"]
+    },
+    {
+      "consumer": "GITHUB_DOWNLOAD_AN_ARTIFACT",
+      "param": "artifact_id",
+      "accept": ["GITHUB_LIST_ARTIFACTS_FOR_A_REPOSITORY", "GITHUB_LIST_WORKFLOW_RUN_ARTIFACTS"],
+      "reject": ["GITHUB_DOWNLOAD_AN_ARTIFACT"]
+    },
+    {
+      "consumer": "GITHUB_GET_CHECK_RUN",
+      "param": "check_run_id",
+      "accept": ["GITHUB_LIST_CHECK_RUNS_FOR_A_REF", "GITHUB_LIST_CHECK_RUNS_IN_A_CHECK_SUITE", "GITHUB_CREATE_A_CHECK_RUN"],
+      "reject": ["GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY", "GITHUB_GET_CHECK_RUN"]
+    },
+    {
+      "consumer": "GITHUB_GET_DEPLOYMENT",
+      "param": "deployment_id",
+      "accept": ["GITHUB_LIST_DEPLOYMENTS", "GITHUB_CREATE_A_DEPLOYMENT"],
+      "reject": ["GITHUB_CREATE_A_GITHUB_PAGES_DEPLOYMENT", "GITHUB_LIST_DEPLOYMENT_STATUSES", "GITHUB_GET_DEPLOYMENT"]
+    },
+    {
+      "consumer": "GITHUB_DELETE_MILESTONE",
+      "param": "milestone_number",
+      "accept": ["GITHUB_LIST_MILESTONES", "GITHUB_CREATE_A_MILESTONE"],
+      "reject": ["GITHUB_GET_A_MILESTONE"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_REVIEW_FOR_A_PULL_REQUEST",
+      "param": "review_id",
+      "accept": ["GITHUB_LIST_REVIEWS_FOR_A_PULL_REQUEST", "GITHUB_CREATE_A_REVIEW_FOR_A_PULL_REQUEST"],
+      "reject": ["GITHUB_GET_A_REVIEW_FOR_A_PULL_REQUEST", "GITHUB_GET_A_PULL_REQUEST", "GITHUB_CREATE_A_PULL_REQUEST"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_REVIEW_FOR_A_PULL_REQUEST",
+      "param": "pull_number",
+      "accept": ["GITHUB_LIST_PULL_REQUESTS", "GITHUB_CREATE_A_PULL_REQUEST"],
+      "reject": ["GITHUB_GET_A_PULL_REQUEST", "GITHUB_CREATE_A_CHECK_RUN"]
+    },
+    {
+      "consumer": "GITHUB_ADD_OR_UPDATE_TEAM_MEMBERSHIP_FOR_USER",
+      "param": "team_slug",
+      "accept": ["GITHUB_LIST_TEAMS", "GITHUB_CREATE_A_TEAM"],
+      "reject": ["GITHUB_GET_A_TEAM_BY_NAME", "GITHUB_GET_A_PULL_REQUEST"]
+    },
+    {
+      "consumer": "GITHUB_CREATE_COMMIT_SIGNATURE_PROTECTION",
+      "param": "branch",
+      "accept": ["GITHUB_LIST_BRANCHES"],
+      "reject": ["GITHUB_LIST_DEPLOYMENT_BRANCH_POLICIES", "GITHUB_CREATE_A_DEPLOYMENT_BRANCH_POLICY", "GITHUB_GET_A_BRANCH"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_REPOSITORY_SECRET",
+      "param": "secret_name",
+      "accept": ["GITHUB_LIST_REPOSITORY_SECRETS", "GITHUB_LIST_REPO_SECRETS_WITHOUT_VALUES"],
+      "reject": ["GITHUB_LIST_ORGANIZATION_SECRETS", "GITHUB_LIST_ENVIRONMENT_SECRETS", "GITHUB_GET_A_REPOSITORY_SECRET"]
+    },
+    {
+      "consumer": "GITHUB_DELETE_ENVIRONMENT",
+      "param": "environment_name",
+      "accept": ["GITHUB_LIST_ENVIRONMENTS"],
+      "reject": ["GITHUB_GET_AN_ENVIRONMENT", "GITHUB_CREATE_OR_UPDATE_AN_ENVIRONMENT"]
+    },
+    {
+      "consumer": "GITHUB_CREATE_A_DISCUSSION_COMMENT",
+      "param": "discussion_number",
+      "accept": ["GITHUB_LIST_DISCUSSIONS", "GITHUB_CREATE_A_DISCUSSION"],
+      "reject": ["GITHUB_GET_DISCUSSION"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_SELF_HOSTED_RUNNER_FOR_A_REPOSITORY",
+      "param": "runner_id",
+      "accept": ["GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY"],
+      "reject": ["GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION", "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY"]
+    },
+    {
+      "consumer": "GITHUB_DELETE_CODESPACE",
+      "param": "codespace_name",
+      "accept": ["GITHUB_LIST_CODESPACES_FOR_THE_AUTHENTICATED_USER", "GITHUB_CREATE_A_CODESPACE_FOR_THE_AUTHENTICATED_USER", "GITHUB_CREATE_A_CODESPACE_IN_A_REPOSITORY"],
+      "reject": ["GITHUB_GET_CODESPACE"]
+    },
+    {
+      "consumer": "GITHUB_GET_A_PACKAGE_FOR_AN_ORGANIZATION",
+      "param": "package_name",
+      "accept": ["GITHUB_LIST_PACKAGES_FOR_AN_ORGANIZATION"],
+      "reject": ["GITHUB_LIST_PACKAGES_FOR_A_USER", "GITHUB_GET_A_PACKAGE_FOR_AN_ORGANIZATION"]
+    },
+    {
+      "consumer": "GITHUB_DELETE_A_REPOSITORY_INVITATION",
+      "param": "invitation_id",
+      "accept": ["GITHUB_LIST_REPOSITORY_INVITATIONS"],
+      "reject": ["GITHUB_LIST_PENDING_TEAM_INVITATIONS"]
+    },
+    {
+      "consumer": "GITHUB_ACCEPT_REPOSITORY_INVITATION",
+      "param": "invitation_id",
+      "accept": ["GITHUB_LIST_REPO_INVITATIONS_FOR_AUTH_USER"],
+      "reject": ["GITHUB_LIST_PENDING_TEAM_INVITATIONS"]
+    },
+    {
+      "consumer": "GITHUB_ENABLE_A_WORKFLOW",
+      "param": "workflow_id",
+      "accept": ["GITHUB_LIST_REPOSITORY_WORKFLOWS"],
+      "reject": ["GITHUB_GET_A_WORKFLOW"]
+    }
+  ],
+  "negatives": [
+    { "consumer": "GITHUB_CREATE_AN_ISSUE_COMMENT", "param": "owner", "reason": "ambient context: the user's/ the agent's repo scope, not a per-call dependency" },
+    { "consumer": "GITHUB_CREATE_AN_ISSUE_COMMENT", "param": "repo", "reason": "ambient context" },
+    { "consumer": "GITHUB_MERGE_A_PULL_REQUEST", "param": "owner", "reason": "ambient context" },
+    { "consumer": "GITHUB_MERGE_A_PULL_REQUEST", "param": "repo", "reason": "ambient context" },
+    { "consumer": "GITHUB_CREATE_AN_ISSUE_COMMENT", "param": "body", "reason": "free text authored by the user" },
+    { "consumer": "GITHUB_CREATE_AN_ISSUE", "param": "title", "reason": "free text authored by the user" },
+    { "consumer": "GITHUB_CREATE_A_COMMIT", "param": "message", "reason": "free text authored by the user" },
+    { "consumer": "GITHUB_DELETE_PACKAGE", "param": "package_type", "reason": "enum chosen by the user, never produced by a tool" },
+    { "consumer": "GITHUB_CREATE_A_COMMIT_STATUS", "param": "state", "reason": "enum chosen by the user" },
+    { "consumer": "GITHUB_CREATE_A_CHECK_RUN", "param": "name", "reason": "name of the check run being created" },
+    { "consumer": "GITHUB_CREATE_A_REFERENCE", "param": "ref", "reason": "name of the ref being created" },
+    { "consumer": "GITHUB_CREATE_OR_UPDATE_A_REPOSITORY_SECRET", "param": "secret_name", "reason": "user-chosen name of the secret being written" },
+    { "consumer": "GITHUB_SEARCH_USERS", "param": "q", "reason": "free-text search query" }
+  ],
+  "ambiguous": [
+    { "consumer": "GITHUB_ADD_A_REPOSITORY_COLLABORATOR", "param": "username", "reason": "usually a handle the user already knows; SEARCH_USERS / LIST_USERS could also supply it" },
+    { "consumer": "GITHUB_GET_LABEL", "param": "name", "reason": "bare `name` could be the label name from LIST_LABELS_FOR_A_REPOSITORY" },
+    { "consumer": "GITHUB_CREATE_OR_UPDATE_AN_ENVIRONMENT", "param": "environment_name", "reason": "create-or-update: new name when creating, listed name when updating" },
+    { "consumer": "GITHUB_CREATE_A_RELEASE", "param": "tag_name", "reason": "user usually picks a new tag; could be an existing tag from LIST_REPOSITORY_TAGS" }
+  ]
+}

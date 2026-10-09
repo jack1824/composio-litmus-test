@@ -1,0 +1,1621 @@
+{
+ "round": 1,
+ "graphState": "commit f76b472 (1,079 edges, 893 nodes)",
+ "method": "Seeded random sample (eval/audit_sample.ts, seed 7). Judges were separate model agents given only the catalog and cards that omit our scores and reasoning. Precision: 100 emitted edges, each judged once by a neutral judge and once by a skeptical judge (whose brief was to find edges that would mislead an agent). Recall: 60 required inputs stratified by how the matcher treated them (40% with edges, 30% considered but no edge, 30% excluded by a rule), judged without seeing any of our edges.",
+ "caveats": "Judges share a model family with the author of the matcher, so errors may correlate. Sample sizes give roughly +/-8 points of uncertainty on precision. Labels are opinions about API semantics, not ground truth.",
+ "summary": {
+  "precision": {
+   "edgesSampled": 100,
+   "neutralValid": 90,
+   "skepticValid": 73,
+   "validUnderBoth": 73,
+   "judgeAgreement": 83
+  },
+  "recall": {
+   "inputsSampled": 60,
+   "judgeSaysFromTool": 28,
+   "ofThose_weEmittedAMatchingProducer": 16,
+   "ofThose_weEmittedNothing": 12,
+   "weEmitButJudgeSaysUserSupplied": 8
+  }
+ },
+ "edges": [
+  {
+   "from": "GITHUB_LIST_PROJECT_ITEMS_FOR_USER",
+   "to": "GITHUB_GET_USER_PROJECT_ITEM",
+   "label": "item_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PROJECT_ITEMS_FOR_USER returns items.id[] for the same user-owned Projects V2 board, needs only username and project_number (not item_id), and the id is the project item id the consumer takes.",
+   "skepticReason": "LIST_PROJECT_ITEMS_FOR_USER returns items.id[] for the same username and project_number, and that is the item_id GET_USER_PROJECT_ITEM takes."
+  },
+  {
+   "from": "GITHUB_LIST_ISSUE_COMMENTS",
+   "to": "GITHUB_DELETE_ISSUE_COMMENT_REACTION",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ISSUE_COMMENTS returns comments.id[] (numeric issue comment ids) for a repo issue, which is exactly the comment_id for deleting a reaction on an issue comment, and it needs only issue_number, not comment_id.",
+   "skepticReason": "GITHUB_LIST_ISSUE_COMMENTS returns comments.id[] which are issue comment ids, the same kind and repository scope as the comment_id the reaction-delete tool takes, and it needs only issue_number, not comment_id."
+  },
+  {
+   "from": "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_ADD_LABELS_TO_AN_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "The org issue listing returns issues.number[] plus each issue's repository object in the catalog output, so the number is a real repo-scoped issue number that can be paired with owner/repo, and the producer needs only org.",
+   "skepticReason": "LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER returns issues.number together with an issues.repository object, so the number can be paired with the repo/owner (the org) for the consumer; it is limited to the caller's filtered issues but is th\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_PROJECTS",
+   "to": "GITHUB_UPDATE_A_PROJECT",
+   "label": "project_number",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "LIST_REPOSITORY_PROJECTS lists Projects (classic) whose numbers are not Projects V2 numbers, while UPDATE_A_PROJECT uses the V2 GraphQL API (classic REST was sunset), so it is the wrong kind of project.",
+   "skepticReason": "LIST_REPOSITORY_PROJECTS lists legacy Projects (classic) in a repo (its own description says it returns empty for modern repos), whose numbers are a different entity and scope from the user- or org-owned ProjectsV2 project_number the consu\u2026"
+  },
+  {
+   "from": "GITHUB_CREATE_A_PULL_REQUEST",
+   "to": "GITHUB_LIST_REVIEWS_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_PULL_REQUEST returns the new PR's number (present in its catalog output) for the same repo and does not need pull_number, so the value can be passed directly to list reviews, although it is a create action rather than a lookup of \u2026",
+   "skepticReason": "GITHUB_CREATE_A_PULL_REQUEST (needs base/head, creates a new PR with side effects, and returns a 422 if a PR for that head/base already exists) yields a brand-new PR with no reviews, so it cannot supply the pull_number of an existing PR wh\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS",
+   "to": "GITHUB_ADD_OR_UPDATE_TEAM_PROJECT_PERMISSIONS",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS for an org returns teams.slug[], the org-level team slug the consumer requires alongside the same org, and it needs only org.",
+   "skepticReason": "LIST_TEAMS for an org returns teams.slug[], the org-scoped team slug the consumer takes as team_slug, and only needs org."
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS",
+   "to": "GITHUB_REMOVE_A_REPOSITORY_FROM_A_TEAM",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS returns teams.slug[] for the org, which is the team_slug the repo-from-team removal needs (org equals the repo owner), and it needs only org.",
+   "skepticReason": "LIST_TEAMS (org) returns teams.slug for org teams, the same org-scoped team slug the consumer's team_slug takes, and the consumer's org input is the same org given to the producer."
+  },
+  {
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "LIST_USER_PROJECTS returns user-owned Projects V2 (its description says the classic REST API is sunset), whereas the consumer needs the id of an organization's classic project, so both the kind and the scope (user vs organization) are wron\u2026",
+   "skepticReason": "The consumer needs a classic (V1) organization project_id for a team, but LIST_USER_PROJECTS is a user-scoped Projects V2 GraphQL listing whose id and number are V2 identifiers, so the scope and project kind are both wrong."
+  },
+  {
+   "from": "GITHUB_GET_ISSUE_COMMENTS",
+   "to": "GITHUB_DELETE_ISSUE_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_ISSUE_COMMENTS returns comments.id[] for an issue's comments, which is the comment_id used to delete an issue comment, and it needs only repo, owner and issue_number.",
+   "skepticReason": "GET_ISSUE_COMMENTS returns comments.id[] for issue comments in the same repo, and DELETE_ISSUE_COMMENT takes exactly that issue comment id."
+  },
+  {
+   "from": "GITHUB_CREATE_AN_ISSUE",
+   "to": "GITHUB_ADD_SUB_ISSUE",
+   "label": "issue_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_AN_ISSUE returns the top-level node_id of the new issue, which is the global GraphQL node ID the consumer wants as the parent issue_id, and it needs no issue id as input.",
+   "skepticReason": "CREATE_AN_ISSUE returns node_id, the GraphQL global node ID of the new issue, which is the parent issue_id the consumer needs, though it creates a new parent issue instead of looking up an existing one."
+  },
+  {
+   "from": "GITHUB_ADD_ITEM_TO_USER_PROJECT",
+   "to": "GITHUB_GET_USER_PROJECT_ITEM",
+   "label": "item_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "ADD_ITEM_TO_USER_PROJECT returns the new project item's id (with item_url and project_url) in the same user project, which is the item_id GET_USER_PROJECT_ITEM requires, and it needs no item_id.",
+   "skepticReason": "ADD_ITEM_TO_USER_PROJECT is a mutating call that adds an issue or PR to the project (and needs the content's id), so using it to find an existing item_id would modify the board; LIST_PROJECT_ITEMS_FOR_USER is the lookup."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORIES",
+   "to": "GITHUB_REMOVE_A_REPOSITORY_FROM_AN_APP_INSTALLATION",
+   "label": "repository_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_REPOSITORIES returns repositories.id[], the numeric repository id of the same kind as repository_id, though it lists all accessible repos rather than only those linked to the installation, so the agent must still pick one that is link\u2026",
+   "skepticReason": "LIST_REPOSITORIES has no required inputs and returns repositories.id[], the numeric repository id the installation endpoint takes, though it lists all accessible repos rather than only those linked to the installation."
+  },
+  {
+   "from": "GITHUB_GET_THE_LATEST_RELEASE",
+   "to": "GITHUB_UPDATE_A_RELEASE",
+   "label": "release_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_THE_LATEST_RELEASE returns the release's top-level id for the same repo, which is the release_id that UPDATE_A_RELEASE takes, and it needs only repo and owner.",
+   "skepticReason": "GET_THE_LATEST_RELEASE returns a top-level release id in the same repo (owner/repo) and does not need release_id, so it can be passed as release_id, though it only covers the latest published release."
+  },
+  {
+   "from": "GITHUB_SEARCH_ISSUES",
+   "to": "GITHUB_ADD_SUB_ISSUE",
+   "label": "issue_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_ISSUES returns items.node_id[] for issues, which is the global node ID of an issue that ADD_SUB_ISSUE takes as the parent issue_id, and it needs only a query q.",
+   "skepticReason": "SEARCH_ISSUES returns items.node_id[], the GraphQL global node ID of each issue, which matches the consumer's issue_id description (global node ID of the parent issue)."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_TEAMS",
+   "to": "GITHUB_LIST_DISCUSSION_COMMENTS",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_REPOSITORY_TEAMS returns teams.slug[] for teams in the repository's owning org, which is the team_slug the discussion-comments tool needs (with org equal to the repo owner), and it does not need team_slug.",
+   "skepticReason": "LIST_REPOSITORY_TEAMS returns teams.slug[] for org teams with access to the repo, which is the team_slug the discussion endpoint takes (org = the repo owner), and the producer does not need team_slug."
+  },
+  {
+   "from": "GITHUB_SEARCH_REPOSITORIES",
+   "to": "GITHUB_ADD_REPO_TO_ORG_SECRET_WITH_SELECTED_VISIBILITY",
+   "label": "repository_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_REPOSITORIES returns items.id[], the numeric repository id that the consumer's repository_id takes, and it can be limited to the org with an org: qualifier in q.",
+   "skepticReason": "GITHUB_SEARCH_REPOSITORIES returns the numeric items.id[] repository id that repository_id requires, and q=org:<org> restricts results to repositories in the organization."
+  },
+  {
+   "from": "GITHUB_CREATE_A_PULL_REQUEST",
+   "to": "GITHUB_LIST_REQUESTED_REVIEWERS_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_PULL_REQUEST returns the new PR's number for the same repo and does not need pull_number, so it can be passed as pull_number, although it creates a PR rather than looking up an existing one.",
+   "skepticReason": "Create-a-pull-request is a side-effecting mutation that needs user-chosen base/head and opens a new PR. The PR whose reviewers are wanted already exists (should come from List pull requests), and a freshly created PR has no requested revie\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_ORGANIZATION_PROJECTS",
+   "to": "GITHUB_UPDATE_A_PROJECT",
+   "label": "project_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ORGANIZATION_PROJECTS lists Projects V2 and returns projects.number[], the same V2 project number the consumer takes (it accepts an org owner), and it needs only org.",
+   "skepticReason": "GITHUB_LIST_ORGANIZATION_PROJECTS returns projects.number[] for Projects V2, and UPDATE_A_PROJECT accepts an optional org (taking precedence over username) with the same V2 project_number, so the org number can be passed directly."
+  },
+  {
+   "from": "GITHUB_LIST_PACKAGES_FOR_AN_ORGANIZATION",
+   "to": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+   "label": "package_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PACKAGES_FOR_AN_ORGANIZATION returns packages.name[] for the same org and package_type, which is the package_name the restore tool requires, and it does not need package_name.",
+   "skepticReason": "List packages for an organization (same org scope) returns packages.name[], which is the package_name the org restore-version endpoint needs."
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS",
+   "to": "GITHUB_CREATE_REACTION_FOR_A_TEAM_DISCUSSION",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS returns teams.slug[] for the org, which is the team_slug the team-discussion reaction tool requires, and it needs only org.",
+   "skepticReason": "LIST_TEAMS (org) returns teams.slug, the org-level team slug the reaction tool needs, with org as the shared input."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_TEAMS",
+   "to": "GITHUB_DELETE_DISCUSSION",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_REPOSITORY_TEAMS returns teams.slug for org teams with access to the repo, and that slug is the same org-team slug DELETE_DISCUSSION takes as team_slug.",
+   "skepticReason": "LIST_REPOSITORY_TEAMS returns org team slugs (teams.slug) for teams with access to the repo, and the repo's owner is the org the consumer needs; it is a subset of org teams but the value kind and scope match."
+  },
+  {
+   "from": "GITHUB_CREATE_A_CUSTOM_ORGANIZATION_ROLE",
+   "to": "GITHUB_UPDATE_A_CUSTOM_ORGANIZATION_ROLE",
+   "label": "role_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_A_CUSTOM_ORGANIZATION_ROLE returns the new role's top-level `id` in the same org, which is the role_id UPDATE_A_CUSTOM_ORGANIZATION_ROLE needs, and it does not need role_id itself.",
+   "skepticReason": "CREATE_A_CUSTOM_ORGANIZATION_ROLE returns the top-level numeric id of an org custom role in the same org scope, usable directly as role_id, though it creates a new role rather than looking up an existing one."
+  },
+  {
+   "from": "GITHUB_LIST_ISSUE_TYPES",
+   "to": "GITHUB_UPDATE_ISSUE_TYPE",
+   "label": "issue_type_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ISSUE_TYPES returns issue_types.id for the same organization, which is exactly the issue_type_id that UPDATE_ISSUE_TYPE requires.",
+   "skepticReason": "GITHUB_LIST_ISSUE_TYPES returns issue_types.id[] for the same organization, which is the issue_type_id UPDATE_ISSUE_TYPE needs, and it requires only org."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_TAGS",
+   "to": "GITHUB_CREATE_A_RELEASE",
+   "label": "tag_name",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "tag_name for creating a release is a name the user chooses (the description says it must be unique for published releases), so it is not something to look up in the existing tags list.",
+   "skepticReason": "tag_name for creating a release is a version name the user chooses (the description says the tag must be unique for published releases), and an existing tag from LIST_REPOSITORY_TAGS may already have a release or is not what is being looke\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW",
+   "to": "GITHUB_GET_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW returns comments.id, which are pull request review comment IDs in the same repo and match the comment_id of GET_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST.",
+   "skepticReason": "Review comments listed under a pull request review have ids that are the same pull-request review comment ids used by GET /pulls/comments/{id}, and the producer needs review_id and pull_number, not comment_id."
+  },
+  {
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+   "to": "GITHUB_CANCEL_WORKFLOW_RUN",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id for runs in the same repository, which is the run_id CANCEL_WORKFLOW_RUN needs.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW returns workflow_runs.id[] in the same repo, which is the run_id for cancelling a run."
+  },
+  {
+   "from": "GITHUB_LIST_REPO_INVITATIONS_FOR_AUTH_USER",
+   "to": "GITHUB_DELETE_A_REPOSITORY_INVITATION",
+   "label": "invitation_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "LIST_REPO_INVITATIONS_FOR_AUTH_USER lists invitations the authenticated user has received as invitee, but DELETE_A_REPOSITORY_INVITATION revokes invitations sent for a specific repo (the repo-level list endpoint is the right source), so th\u2026",
+   "skepticReason": "The producer lists invitations received by the authenticated user as invitee across repos, but deleting a repo invitation is a repo-admin action on invitations sent for that repo, which List Repository Invitations covers. Ids from the invi\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS",
+   "to": "GITHUB_UPDATE_A_TEAM",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS returns teams.slug for the given organization, the same org-scoped team slug that UPDATE_A_TEAM takes.",
+   "skepticReason": "LIST_TEAMS returns teams.slug[] for the same org, which is the team_slug that UPDATE_A_TEAM takes."
+  },
+  {
+   "from": "GITHUB_LIST_PULL_REQUESTS",
+   "to": "GITHUB_REOPEN_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PULL_REQUESTS returns pull_requests.number for the repo (state can be set to closed), which is the pull_number REOPEN_PULL_REQUEST needs.",
+   "skepticReason": "LIST_PULL_REQUESTS (owner/repo) returns pull_requests.number plus state and closed_at, so the agent can pick a closed PR's number as pull_number."
+  },
+  {
+   "from": "GITHUB_CREATE_A_DISCUSSION",
+   "to": "GITHUB_LIST_REACTIONS_FOR_A_TEAM_DISCUSSION",
+   "label": "discussion_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_DISCUSSION returns the top-level `number` of the team discussion in the same org and team, which is the discussion_number that LIST_REACTIONS_FOR_A_TEAM_DISCUSSION takes.",
+   "skepticReason": "Create-a-discussion publishes a new team post with user-written title and body. The discussion whose reactions are wanted already exists (List Discussions would supply it), and a newly created one has no reactions."
+  },
+  {
+   "from": "GITHUB_CREATE_A_USER_PROJECT",
+   "to": "GITHUB_ADD_ITEM_TO_USER_PROJECT",
+   "label": "project_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_A_USER_PROJECT returns data.number for a Projects V2 project owned by the authenticated user, which is the project_number ADD_ITEM_TO_USER_PROJECT needs for a user-owned project.",
+   "skepticReason": "Create-a-user-project returns data.number, the project number for the same authenticated user. Adding an issue or PR to the newly created user project is a coherent flow."
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_UPDATE_A_DISCUSSION",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_TEAMS_FOR_THE_AUTHENTICATED_USER returns teams.slug (with teams.organization.login for the org), the org team slug that UPDATE_A_DISCUSSION takes as team_slug.",
+   "skepticReason": "LIST_TEAMS_FOR_THE_AUTHENTICATED_USER takes no inputs and returns teams.slug (org-level team slug) plus teams.organization.login, which supplies the consumer's org and team_slug."
+  },
+  {
+   "from": "GITHUB_LIST_CODESPACES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_EXPORT_A_CODESPACE_FOR_THE_AUTHENTICATED_USER",
+   "label": "codespace_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_CODESPACES_FOR_THE_AUTHENTICATED_USER returns codespaces.name, the unique codespace name that EXPORT_A_CODESPACE_FOR_THE_AUTHENTICATED_USER requires, and it has no required inputs.",
+   "skepticReason": "LIST_CODESPACES_FOR_THE_AUTHENTICATED_USER has no required inputs and returns codespaces.name[], the unique codespace name the same user's export call needs."
+  },
+  {
+   "from": "GITHUB_CREATE_A_CUSTOM_ORGANIZATION_ROLE",
+   "to": "GITHUB_DELETE_CUSTOM_ORGANIZATION_ROLE",
+   "label": "role_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_CUSTOM_ORGANIZATION_ROLE returns the new role's `id` in the same org, which can be passed as role_id to DELETE_CUSTOM_ORGANIZATION_ROLE, and it does not need role_id.",
+   "skepticReason": "GITHUB_CREATE_A_CUSTOM_ORGANIZATION_ROLE creates a new role from user-chosen name/permissions, so its id is not a lookup of the existing role the agent wants to delete and would lead it to create a role instead of finding one."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_SECRETS",
+   "to": "GITHUB_LIST_SELECTED_REPOSITORIES_FOR_SECRET_ACCESS",
+   "label": "secret_name",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs the name of an organization-level Dependabot secret, but LIST_REPOSITORY_SECRETS lists secrets of a single repository (Actions secrets), so both the scope and the secret type are wrong.",
+   "skepticReason": "GITHUB_LIST_REPOSITORY_SECRETS lists repository-level Actions secret names, while the consumer needs an organization-level Dependabot secret name, so both the scope (repo vs org) and the secret type are wrong."
+  },
+  {
+   "from": "GITHUB_LIST_BRANCHES",
+   "to": "GITHUB_RENAME_A_BRANCH",
+   "label": "branch",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_BRANCHES returns branches.name for the repo, which is the current branch name that RENAME_A_BRANCH requires.",
+   "skepticReason": "GITHUB_LIST_BRANCHES returns branches.name[] in the same repository, which is exactly the current branch name RENAME_A_BRANCH requires."
+  },
+  {
+   "from": "GITHUB_LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_RESTORE_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+   "label": "package_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER returns packages.name for the authenticated user's namespace, matching the package_name that the user-scoped restore tool takes.",
+   "skepticReason": "LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER returns packages.name[] for the same authenticated-user namespace, its only required input (package_type) is also a consumer input, and that name is passed directly as package_name."
+  },
+  {
+   "from": "GITHUB_CREATE_A_GIST",
+   "to": "GITHUB_LIST_GIST_FORKS",
+   "label": "gist_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_GIST returns the top-level gist `id`, which is the gist_id that LIST_GIST_FORKS takes, and it does not need gist_id.",
+   "skepticReason": "CREATE_A_GIST creates a new gist (side effect) whose id has no forks, so it does not supply the existing gist the user wants to list forks for; the gist id should come from a gist-listing tool."
+  },
+  {
+   "from": "GITHUB_SEARCH_ISSUES",
+   "to": "GITHUB_GET_AN_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_ISSUES returns items.number, the issue number within its repo, which GET_AN_ISSUE takes as issue_number, and the owner and repo can be taken from the same search result.",
+   "skepticReason": "Search issues returns items.number[] plus repository/repository_url per item, so the number can be used with the matching owner/repo in get-an-issue."
+  },
+  {
+   "from": "GITHUB_LIST_COMMIT_COMMENTS",
+   "to": "GITHUB_DELETE_COMMIT_COMMENT_REACTION",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_COMMIT_COMMENTS returns comments.id, the commit comment IDs in the same repo, which are the comment_id DELETE_COMMIT_COMMENT_REACTION requires.",
+   "skepticReason": "LIST_COMMIT_COMMENTS returns comments.id[] for the same repo, which is the commit-comment id the reaction-delete tool needs, and it requires commit_sha rather than comment_id."
+  },
+  {
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_CREATE_DRAFT_ITEM_FOR_USER_PROJECT",
+   "label": "project_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_USER_PROJECTS returns number[] for a given username's Projects V2, which is exactly the user-scoped project_number that CREATE_DRAFT_ITEM_FOR_USER_PROJECT needs.",
+   "skepticReason": "LIST_USER_PROJECTS takes username and returns root.number for each user-owned ProjectsV2 project, which is the project_number the user-project consumer takes."
+  },
+  {
+   "from": "GITHUB_LIST_GISTS_FOR_A_USER",
+   "to": "GITHUB_GET_GIST_REVISION",
+   "label": "gist_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_GISTS_FOR_A_USER returns gists.id[], which is the gist_id that GET_GIST_REVISION takes (its separate sha input is a different parameter).",
+   "skepticReason": "LIST_GISTS_FOR_A_USER needs only a username and returns gists.id[], the gist id that GET_GIST_REVISION takes as gist_id."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_TEAMS",
+   "to": "GITHUB_CREATE_A_DISCUSSION",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_REPOSITORY_TEAMS returns teams.slug[], an org team slug usable as team_slug for creating a team discussion in the org that owns the repo.",
+   "skepticReason": "LIST_REPOSITORY_TEAMS returns teams.slug[] for existing org teams, which is the slug of an existing team where the discussion is created, and the producer does not need team_slug."
+  },
+  {
+   "from": "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK",
+   "to": "GITHUB_UPDATE_AN_ORGANIZATION_WEBHOOK",
+   "label": "hook_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_AN_ORGANIZATION_WEBHOOK returns the new webhook's top-level id, an org-scope hook_id usable in the org webhook update, and it does not need hook_id itself (it creates a new hook rather than listing existing ones).",
+   "skepticReason": "CREATE_AN_ORGANIZATION_WEBHOOK makes a new hook and requires a user-chosen config__url, so an agent trying to update an existing org webhook would create a duplicate and update that instead of looking up the existing hook_id."
+  },
+  {
+   "from": "GITHUB_LIST_JOBS_FOR_A_WORKFLOW_RUN",
+   "to": "GITHUB_GET_WORKFLOW_RUN_JOB",
+   "label": "job_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_JOBS_FOR_A_WORKFLOW_RUN returns jobs.id[] for a run_id in the same repo, and these are the job_ids GET_WORKFLOW_RUN_JOB accepts.",
+   "skepticReason": "List jobs for a workflow run in the same repo returns jobs.id[], the job_id that get-workflow-run-job needs. The run_id it needs can come from the list-runs tool, so the producer does not depend on job_id."
+  },
+  {
+   "from": "GITHUB_CREATE_A_GIST",
+   "to": "GITHUB_LIST_GIST_COMMITS",
+   "label": "gist_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_GIST returns the new gist's top-level id (the gist_id), which LIST_GIST_COMMITS accepts, and it needs only files; it creates a new gist rather than looking up an existing one.",
+   "skepticReason": "CREATE_A_GIST makes a new gist (a side effect) so its returned id would never be the existing gist whose commits the user wants to list; the gist id should come from a gist-listing tool."
+  },
+  {
+   "from": "GITHUB_CREATE_A_REPOSITORY_WEBHOOK",
+   "to": "GITHUB_LIST_DELIVERIES_FOR_A_REPOSITORY_WEBHOOK",
+   "label": "hook_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_REPOSITORY_WEBHOOK returns the new hook's top-level id in the same repo scope, usable as hook_id for listing deliveries, and it does not need hook_id; it creates a new hook rather than listing existing ones.",
+   "skepticReason": "CREATE_A_REPOSITORY_WEBHOOK is a mutating create call that makes a new hook, so an agent wanting an existing webhook's deliveries would create a duplicate hook with no delivery history instead of looking one up (a list-webhooks tool is the\u2026"
+  },
+  {
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs a classic project's project_id, but GET_A_PROJECT is a Projects V2 lookup (the card says classic was sunset), and a V2 project id is a different kind of entity from a classic project id.",
+   "skepticReason": "The producer is the Projects V2 endpoint (its card says classic was sunset), so its numeric id/node_id are V2 identifiers, not the classic project_id that the org team-permissions check needs."
+  },
+  {
+   "from": "GITHUB_CREATE_A_REVIEW_FOR_A_PULL_REQUEST",
+   "to": "GITHUB_DISMISS_A_REVIEW_FOR_A_PULL_REQUEST",
+   "label": "review_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_REVIEW_FOR_A_PULL_REQUEST returns the review's id for the same repo and pull_number, which is the review_id DISMISS_A_REVIEW takes; it only needs pull_number, not review_id, though the review must be in APPROVED or CHANGES_REQUEST\u2026",
+   "skepticReason": "CREATE_A_REVIEW_FOR_A_PULL_REQUEST creates a brand-new review as a side effect rather than looking up the existing review the user wants dismissed (omitted event gives PENDING, which cannot be dismissed, and you cannot approve your own PR)\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_AUTOLINKS",
+   "to": "GITHUB_DELETE_AUTOLINK_REFERENCE",
+   "label": "autolink_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_REPOSITORY_AUTOLINKS returns autolinks.id[] for the same repo, which is the autolink_id that DELETE_AUTOLINK_REFERENCE takes.",
+   "skepticReason": "List repository autolinks for the same owner/repo returns autolinks.id[], the autolink_id that delete-autolink takes."
+  },
+  {
+   "from": "GITHUB_SEARCH_ISSUES",
+   "to": "GITHUB_REOPEN_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_ISSUES returns items.number[] (the catalog output includes number), which is the issue_number for reopening an issue; results can include pull requests, so the agent must pick an issue.",
+   "skepticReason": "SEARCH_ISSUES returns items.number[], the issue number, and a repo:owner/name is:issue is:closed query scopes it to the target repository."
+  },
+  {
+   "from": "GITHUB_LIST_RELEASES",
+   "to": "GITHUB_DELETE_A_RELEASE_REACTION",
+   "label": "release_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_RELEASES for the same repo returns releases.id[], the release_id needed to delete a release reaction (reaction_id is a separate input).",
+   "skepticReason": "GITHUB_LIST_RELEASES returns releases.id[] for the same repository, which is the numeric release_id the release-reaction delete tool requires."
+  },
+  {
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_LIST_PULL_REQUESTS_FILES",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's pull requests, and its full catalog output includes number, which is the pull_number LIST_PULL_REQUESTS_FILES takes (the card's returns list is truncated).",
+   "skepticReason": "GET_PULL_REQUESTS returns PullRequestSimple items with the 'number' field (pull request number within the repository) for the same owner/repo, which is the pull_number the files tool needs."
+  },
+  {
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_DELETE_PROJECT",
+   "label": "project_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_A_PROJECT returns node_id for a Projects V2 project, which is the GraphQL node ID (PVT_...) DELETE_PROJECT expects as project_id, in the same V2 kind and user/org scope; the numeric id would be the wrong field, so the agent must use no\u2026",
+   "skepticReason": "Get-a-project returns node_id, which the card describes as the GraphQL node ID (PVT_...) that delete-project requires. The numeric id field is a trap, but node_id works, and project_number is visible in the project URL."
+  },
+  {
+   "from": "GITHUB_LIST_CHECK_RUNS_FOR_A_REF",
+   "to": "GITHUB_GET_CHECK_RUN",
+   "label": "check_run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_CHECK_RUNS_FOR_A_REF returns check_runs.id[] for the same repo, which is the check_run_id GET_CHECK_RUN takes.",
+   "skepticReason": "LIST_CHECK_RUNS_FOR_A_REF returns check_runs.id[] for the same owner/repo, which is the check_run_id that GET_CHECK_RUN takes."
+  },
+  {
+   "from": "GITHUB_LIST_ORGANIZATION_SECRETS",
+   "to": "GITHUB_DELETE_ORGANIZATION_SECRET",
+   "label": "secret_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ORGANIZATION_SECRETS returns secrets.name[] for the same org, and these existing names are the secret_name that DELETE_ORGANIZATION_SECRET takes.",
+   "skepticReason": "LIST_ORGANIZATION_SECRETS needs only org and returns secrets.name[], the exact secret name the delete call takes, in the same organization scope."
+  },
+  {
+   "from": "GITHUB_LIST_ENVIRONMENTS",
+   "to": "GITHUB_DELETE_DEPLOYMENT_BRANCH_POLICY",
+   "label": "environment_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ENVIRONMENTS returns environments.name[] for the same repo, which is the environment_name DELETE_DEPLOYMENT_BRANCH_POLICY requires (branch_policy_id is a separate input).",
+   "skepticReason": "LIST_ENVIRONMENTS returns environments.name[] for the same repo, which is the environment_name the consumer needs, and it does not require environment_name."
+  },
+  {
+   "from": "GITHUB_CREATE_A_GIST",
+   "to": "GITHUB_CHECK_IF_GIST_IS_STARRED",
+   "label": "gist_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_A_GIST returns the new gist's id, which has the gist_id form CHECK_IF_GIST_IS_STARRED needs and does not require gist_id itself, although a freshly created gist is not a very meaningful target.",
+   "skepticReason": "CREATE_A_GIST returns the new gist's top-level id, which is the gist_id the star check takes, though the check on a just-created gist is of little practical use."
+  },
+  {
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_MARK_PULL_REQUEST_READY_FOR_REVIEW",
+   "label": "pull_request_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's PRs and its catalog output includes node_id, and the consumer card says the pull_request_id GraphQL node ID comes from the node_id field when listing pull requests.",
+   "skepticReason": "The catalog schema for GITHUB_GET_PULL_REQUESTS includes node_id on each PullRequestSimple, which is the global GraphQL pull request ID the consumer's description says to take from listing pull requests."
+  },
+  {
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+   "to": "GITHUB_GET_A_WORKFLOW_RUN",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY returns workflow_runs.id[] for the same repo, which is the run_id GET_A_WORKFLOW_RUN takes.",
+   "skepticReason": "LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY takes the same repo/owner and returns workflow_runs.id[], the run id the consumer takes."
+  },
+  {
+   "from": "GITHUB_SEARCH_ISSUES",
+   "to": "GITHUB_LOCK_AN_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_SEARCH_ISSUES returns items.number[] (the issue number), and a query such as repo:owner/name lets the agent pick the issue to pass as issue_number (plus owner/repo) to lock.",
+   "skepticReason": "Search issues returns items.number[] with repository info per item, so the number can be paired with the right owner/repo for lock-an-issue."
+  },
+  {
+   "from": "GITHUB_LIST_BRANCHES",
+   "to": "GITHUB_UPDATE_STATUS_CHECK_PROTECTION",
+   "label": "branch",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_BRANCHES (needs only owner/repo) returns branches.name[], which is exactly the branch name the status-check-protection update takes in the same repository.",
+   "skepticReason": "GITHUB_LIST_BRANCHES returns branches.name[] (with a protected flag) for the same repository, matching the branch name needed by UPDATE_STATUS_CHECK_PROTECTION."
+  },
+  {
+   "from": "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK",
+   "to": "GITHUB_LIST_DELIVERIES_FOR_AN_ORGANIZATION_WEBHOOK",
+   "label": "hook_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK takes only org and config url and returns the new webhook's top-level id, which is an organization hook_id of the same scope (though listing existing hooks would be the more natural producer).",
+   "skepticReason": "CREATE_AN_ORGANIZATION_WEBHOOK creates a new webhook (side effect, duplicate hook), so its id gives the delivery history of the freshly created hook rather than of the existing webhook the user wants to inspect; the id should come from lis\u2026"
+  },
+  {
+   "from": "GITHUB_GET_THE_LATEST_RELEASE",
+   "to": "GITHUB_UPLOAD_RELEASE_ASSET",
+   "label": "release_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_GET_THE_LATEST_RELEASE needs only owner/repo and returns the release's top-level id, which is the same repository-level release_id the upload endpoint expects.",
+   "skepticReason": "GET_THE_LATEST_RELEASE returns the repo-scoped release id that the upload endpoint takes as release_id, with no circular dependency, though it cannot reach draft or prerelease releases."
+  },
+  {
+   "from": "GITHUB_LIST_BRANCHES",
+   "to": "GITHUB_ADD_STATUS_CHECK_CONTEXTS",
+   "label": "branch",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_BRANCHES returns branches.name[] (with a protected flag) for the same repo, usable directly as the branch to which status check contexts are added.",
+   "skepticReason": "LIST_BRANCHES returns branches.name (and a protected flag) for the same owner/repo, and a branch name is exactly what the consumer's 'branch' input takes."
+  },
+  {
+   "from": "GITHUB_LIST_REPO_INVITATIONS_FOR_AUTH_USER",
+   "to": "GITHUB_UPDATE_A_REPOSITORY_INVITATION",
+   "label": "invitation_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "GITHUB_LIST_REPO_INVITATIONS_FOR_AUTH_USER lists invitations received by the authenticated user (as invitee) across repos, whereas updating an invitation's permissions is done by a repo admin and the repo-scoped producer is GITHUB_LIST_REP\u2026",
+   "skepticReason": "LIST_REPO_INVITATIONS_FOR_AUTH_USER (GET /user/repository_invitations) lists invitations received by the caller as invitee, while PATCH /repos/{owner}/{repo}/invitations/{id} is an admin-side action on invitations sent from a repo, so it w\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_ORGANIZATION_SECRETS",
+   "to": "GITHUB_REMOVE_SELECTED_REPO_FROM_ORG_SECRET",
+   "label": "secret_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_ORGANIZATION_SECRETS needs only org and returns secrets.name[], which are the organization secret names that secret_name refers to.",
+   "skepticReason": "LIST_ORGANIZATION_SECRETS returns secrets.name[] for the same org, which is exactly the org-level secret_name the consumer needs, and it only requires org."
+  },
+  {
+   "from": "GITHUB_CREATE_A_MILESTONE",
+   "to": "GITHUB_LIST_LABELS_FOR_ISSUES_IN_A_MILESTONE",
+   "label": "milestone_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_CREATE_A_MILESTONE returns the new milestone's `number` in the same repository, which is the milestone_number the label-listing endpoint takes (though it creates rather than looks up existing milestones).",
+   "skepticReason": "CREATE_A_MILESTONE returns the repo-scoped milestone 'number' for the same repo/owner, which is passed directly as milestone_number, though a newly created milestone has no issues so the result will be empty."
+  },
+  {
+   "from": "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_REMOVE_A_PROJECT_FROM_A_TEAM",
+   "label": "team_slug",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER returns teams.slug[] and teams.organization.login[], giving the team slug (and its org) that the project-removal tool needs.",
+   "skepticReason": "LIST_TEAMS_FOR_THE_AUTHENTICATED_USER returns teams.slug and teams.organization.login, giving the org-level team slug (and org) the consumer needs, with no required inputs of its own."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_ISSUES",
+   "to": "GITHUB_CLOSE_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_REPOSITORY_ISSUES needs only owner/repo and returns issues.number[], the issue number that CLOSE_ISSUE takes for the same repository.",
+   "skepticReason": "List repository issues for the same owner/repo returns issues.number[], which is the issue_number close-issue takes (PRs in the list also work as issue numbers)."
+  },
+  {
+   "from": "GITHUB_LIST_REPOSITORY_ORGANIZATION_SECRETS",
+   "to": "GITHUB_REMOVE_SELECTED_REPO_FROM_ORG_SECRET",
+   "label": "secret_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_REPOSITORY_ORGANIZATION_SECRETS returns secrets.name[] of the organization-level secrets shared with a repo, which are valid org secret_name values (the repo's owner supplies org).",
+   "skepticReason": "LIST_REPOSITORY_ORGANIZATION_SECRETS returns secrets.name for org-level secrets shared with the repo, which is the org secret_name the consumer needs (the repo's owner is the org); it may include non-removable 'all'-visibility secrets but \u2026"
+  },
+  {
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CREATE_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_GET_PULL_REQUESTS lists a repo's pull requests with PullRequestSimple objects that include `number`, which is the pull_number the review-comment endpoint requires.",
+   "skepticReason": "GET_PULL_REQUESTS lists pulls for the same repo/owner and returns the per-PR 'number' that is passed as pull_number (the producer's head.sha can also supply commit_id)."
+  },
+  {
+   "from": "GITHUB_LIST_USERS",
+   "to": "GITHUB_SET_USER_INTERACTION_LIMIT_GRAPH_QL",
+   "label": "userId",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "GITHUB_LIST_USERS returns users.node_id[], the global GraphQL node ID of a user, which is what the userId parameter asks for.",
+   "skepticReason": "GITHUB_LIST_USERS is an unfiltered global enumeration of all accounts (users and organizations) by sign-up id with no login lookup, so the agent cannot get the intended (authenticated) user's node_id and would pick an arbitrary account or \u2026"
+  },
+  {
+   "from": "GITHUB_LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_DELETE_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+   "label": "package_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER returns packages.name[] for the authenticated user's own packages, matching the package_name used by the authenticated-user delete endpoint.",
+   "skepticReason": "List packages for the authenticated user returns packages.name[] in the same user namespace, and package_type (the producer's only input) is known to the user."
+  },
+  {
+   "from": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+   "to": "GITHUB_GET_WORKFLOW_RUN_USAGE",
+   "label": "run_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY returns workflow_runs.id[], which is the repository-level run_id that the workflow run usage endpoint takes.",
+   "skepticReason": "List workflow runs for the same repo returns workflow_runs.id[], which is the run_id workflow-run-usage takes."
+  },
+  {
+   "from": "GITHUB_LIST_USER_PROJECTS",
+   "to": "GITHUB_LIST_PROJECT_FIELDS_FOR_USER",
+   "label": "project_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_LIST_USER_PROJECTS returns root.number[] for a given username's Projects V2, which is the project_number the user-project fields listing takes.",
+   "skepticReason": "List user projects for the same username returns root.number[], the project_number that list-project-fields-for-user takes."
+  },
+  {
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CREATE_A_CODESPACE_FROM_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_GET_PULL_REQUESTS returns each pull request's `number` in the repo, which is the pull_number needed to create a codespace from that PR.",
+   "skepticReason": "GET_PULL_REQUESTS lists a repo's pulls with the same repo/owner inputs, and the catalog output includes the per-PR 'number' field that is passed as pull_number."
+  },
+  {
+   "from": "GITHUB_CREATE_A_PULL_REQUEST",
+   "to": "GITHUB_LIST_COMMITS_ON_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "GITHUB_CREATE_A_PULL_REQUEST returns the new PR's `number` (its response schema has a top-level number field), usable as pull_number for listing that PR's commits.",
+   "skepticReason": "GITHUB_CREATE_A_PULL_REQUEST does return number, but it is a write that opens a new PR (requires base/head and fails with 422 if one already exists) rather than looking up the existing PR whose commits the agent is asked to list."
+  },
+  {
+   "from": "GITHUB_GET_THE_LICENSE_FOR_A_REPOSITORY",
+   "to": "GITHUB_GET_LICENSE",
+   "label": "license",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GITHUB_GET_THE_LICENSE_FOR_A_REPOSITORY returns license.key (e.g. 'mit'), the same license key identifier that GITHUB_GET_LICENSE takes.",
+   "skepticReason": "GET_THE_LICENSE_FOR_A_REPOSITORY returns license.key, which is the license's own key (e.g. 'mit') that GET_LICENSE takes, and it needs only repo/owner, not the license key."
+  },
+  {
+   "from": "GITHUB_GET_A_REPOSITORY",
+   "to": "GITHUB_CREATE_A_REPOSITORY_USING_A_TEMPLATE",
+   "label": "template_repo",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "template_repo is simply the name of the template repository, and GITHUB_GET_A_REPOSITORY itself requires that same repo and owner as input and only echoes the name back, so the producer already needs X.",
+   "skepticReason": "GET_A_REPOSITORY requires repo (and owner) as input, so it already needs the template repository name it would supply (circular), and it only echoes the name back."
+  },
+  {
+   "from": "GITHUB_CREATE_A_USER_PROJECT",
+   "to": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+   "label": "projectId",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_A_USER_PROJECT uses the Projects V2 GraphQL API and returns data.id, which is the ProjectV2 global node ID that UPDATE_USER_PROJECT_ITEM takes as projectId (same user-scope V2 project).",
+   "skepticReason": "Create-a-user-project returns data.id described as the global node ID of the project, which is the projectId this tool takes. A new project is empty, so the agent still has to add an item first to get an itemId."
+  },
+  {
+   "from": "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_CLOSE_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER returns issues.number[], which is the per-repo issue number CLOSE_ISSUE needs (owner/repo come from the issue's repository), and it only requires org.",
+   "skepticReason": "LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER returns issues.number[] together with a per-issue repository object (confirmed in the catalog output), so the number can be paired with the right repo/owner for the close call."
+  },
+  {
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_GET_PROJECT_PERMISSION_FOR_A_USER",
+   "label": "project_id",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "The consumer needs a project (classic) numeric project_id, while GET_A_PROJECT is explicitly the Projects V2 API (classic was sunset) and returns a V2 project id/number, which is the wrong kind of project.",
+   "skepticReason": "The consumer hits the classic-project collaborator permission endpoint, while GET_A_PROJECT is explicitly Projects V2 (the classic API was sunset), so its id/number is a different id space and would not resolve as the consumer's project_id."
+  },
+  {
+   "from": "GITHUB_CREATE_A_RELEASE",
+   "to": "GITHUB_LIST_REACTIONS_FOR_A_RELEASE",
+   "label": "release_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_RELEASE returns the release's top-level id, which is the release_id for LIST_REACTIONS_FOR_A_RELEASE in the same repo, and it does not need release_id itself.",
+   "skepticReason": "The release whose reactions are wanted already exists, and the agent should look it up with List Releases. Create-a-release would publish a new release (needs a user-chosen unique tag_name), so the edge makes the agent create a duplicate t\u2026"
+  },
+  {
+   "from": "GITHUB_LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW",
+   "to": "GITHUB_CREATE_REACTION_FOR_A_PULL_REQUEST_REVIEW_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW returns comments.id[], which are pull request review comment IDs, exactly the kind CREATE_REACTION_FOR_A_PULL_REQUEST_REVIEW_COMMENT takes as comment_id in the same repo.",
+   "skepticReason": "GITHUB_LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW returns comments.id[] which are pull request review comment ids, the same kind as comment_id for the review-comment reaction tool, and it does not need comment_id itself."
+  },
+  {
+   "from": "GITHUB_LIST_PACKAGES_FOR_A_USER",
+   "to": "GITHUB_RESTORE_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+   "label": "package_name",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PACKAGES_FOR_A_USER returns packages.name[], which are existing package names usable as package_name for the user-scoped restore call (the username input is the authenticated user).",
+   "skepticReason": "LIST_PACKAGES_FOR_A_USER returns packages.name[] for the given package_type, the same package name the restore tool takes, though it only lists packages that still exist."
+  },
+  {
+   "from": "GITHUB_CREATE_A_GIST_COMMENT",
+   "to": "GITHUB_GET_GIST_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "CREATE_A_GIST_COMMENT returns the new comment's top-level id on the given gist, which is the comment_id GET_GIST_COMMENT needs alongside the same gist_id.",
+   "skepticReason": "CREATE_A_GIST_COMMENT returns the new comment's top-level id for the same gist_id, usable directly as comment_id, though it posts a new comment instead of looking up an existing one."
+  },
+  {
+   "from": "GITHUB_GET_A_PROJECT",
+   "to": "GITHUB_CLEAR_PROJECT_V2_ITEM_FIELD_VALUE",
+   "label": "projectId",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_A_PROJECT (Projects V2) returns node_id, the global node ID (PVT_...) that the V2 projectId input requires, and only needs project_number/owner.",
+   "skepticReason": "GET_A_PROJECT (Projects V2) returns node_id described as the GraphQL node ID of the project (PVT_...), which is exactly the global projectId the consumer requires, and the producer needs only the project number and owner."
+  },
+  {
+   "from": "GITHUB_SEARCH_ISSUES",
+   "to": "GITHUB_LIST_TIMELINE_EVENTS_FOR_AN_ISSUE",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_ISSUES returns items.number[] (plus repo URL), which is the issue number LIST_TIMELINE_EVENTS_FOR_AN_ISSUE needs, and it only requires a free-text query q.",
+   "skepticReason": "GITHUB_SEARCH_ISSUES returns items.number[] (issue or PR numbers, both accepted by the issues timeline endpoint), usable as issue_number when q is scoped with repo:owner/name."
+  },
+  {
+   "from": "GITHUB_CREATE_AN_ISSUE_COMMENT",
+   "to": "GITHUB_DELETE_ISSUE_COMMENT",
+   "label": "comment_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_AN_ISSUE_COMMENT returns the new comment's id in the same repository, which is the comment_id DELETE_ISSUE_COMMENT takes; the producer needs issue_number, not comment_id.",
+   "skepticReason": "GITHUB_CREATE_AN_ISSUE_COMMENT posts a new comment (a side effect needing body), so its id only identifies the comment just created, not an existing comment the agent wants to delete, which LIST_ISSUE_COMMENTS would supply."
+  },
+  {
+   "from": "GITHUB_LIST_PULL_REQUESTS",
+   "to": "GITHUB_LIST_REQUESTED_REVIEWERS_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_PULL_REQUESTS returns pull_requests.number[] for the same owner/repo, which is the pull_number LIST_REQUESTED_REVIEWERS_FOR_A_PULL_REQUEST needs.",
+   "skepticReason": "LIST_PULL_REQUESTS returns pull_requests.number[] for the same owner/repo, which is the pull_number the consumer needs."
+  },
+  {
+   "from": "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK",
+   "to": "GITHUB_DELETE_ORGANIZATION_WEBHOOK",
+   "label": "hook_id",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_AN_ORGANIZATION_WEBHOOK returns the webhook's top-level id for the same org, which is the hook_id DELETE_ORGANIZATION_WEBHOOK requires.",
+   "skepticReason": "CREATE_AN_ORGANIZATION_WEBHOOK creates a new webhook, so using its id would delete the webhook just created instead of the existing one the user wants to remove; the hook_id should come from listing org webhooks."
+  },
+  {
+   "from": "GITHUB_LIST_COMMITS",
+   "to": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+   "label": "commit_sha",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_COMMITS returns commits.sha[] for the same owner/repo, which are the commit SHAs LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT takes as commit_sha.",
+   "skepticReason": "GITHUB_LIST_COMMITS returns commits.sha[] for the same repository, which is the commit_sha the associated-pull-requests tool takes."
+  },
+  {
+   "from": "GITHUB_GET_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_LOOKUP_ENTERPRISE_ADMINISTRATOR_INVITATION",
+   "label": "user_login",
+   "neutral": "invalid",
+   "skeptic": "invalid",
+   "neutralReason": "user_login is the login of the invitee the user chooses to look up, whereas GET_THE_AUTHENTICATED_USER returns only the caller's own login, who is not the invited administrator, so it is not a lookup of the needed value.",
+   "skepticReason": "user_login is the invitee being looked up, which the user names. The authenticated user's own login is the caller, not the invited person, so using it would check the wrong user."
+  },
+  {
+   "from": "GITHUB_SEARCH_COMMITS",
+   "to": "GITHUB_CREATE_A_COMMIT_COMMENT",
+   "label": "commit_sha",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "SEARCH_COMMITS returns items.sha[] (with repository info), the commit SHA CREATE_A_COMMIT_COMMENT needs as commit_sha, and it only requires a query q.",
+   "skepticReason": "Search commits returns items.sha[] (full commit SHA) and a repository object per item, so the SHA and the matching owner/repo can be passed to create-commit-comment."
+  },
+  {
+   "from": "GITHUB_GET_PULL_REQUESTS",
+   "to": "GITHUB_CHECK_IF_PULL_REQUEST_MERGED",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "GET_PULL_REQUESTS lists a repo's pull requests with pull_requests.number[] (confirmed in its schema), which is the pull_number CHECK_IF_PULL_REQUEST_MERGED takes for the same owner/repo.",
+   "skepticReason": "GET_PULL_REQUESTS (needs only owner/repo) returns PullRequestSimple objects that include the integer 'number' field, which is exactly the repo-scoped pull_number the consumer needs."
+  },
+  {
+   "from": "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER",
+   "to": "GITHUB_LIST_ISSUE_DEPENDENCIES_BLOCKING",
+   "label": "issue_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER returns issues.number[], the issue number LIST_ISSUE_DEPENDENCIES_BLOCKING needs (repo/owner from each issue's repository).",
+   "skepticReason": "The org issues list returns issues.number[] and a repository object per issue (the Issue schema has repository and repository_url), so number and owner/repo can be paired for the blocking-dependencies call."
+  },
+  {
+   "from": "GITHUB_FIND_PULL_REQUESTS",
+   "to": "GITHUB_MERGE_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "FIND_PULL_REQUESTS returns pull_requests.number[] and needs no required inputs, giving the pull_number MERGE_A_PULL_REQUEST requires (repo/owner from each PR's repository).",
+   "skepticReason": "GITHUB_FIND_PULL_REQUESTS needs no inputs and returns pull_requests.number[], the repository-scoped pull number MERGE_A_PULL_REQUEST takes, filterable by repo."
+  },
+  {
+   "from": "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION",
+   "to": "GITHUB_LIST_LABELS_FOR_SELF_HOSTED_RUNNER_ORG",
+   "label": "runner_id",
+   "neutral": "valid",
+   "skeptic": "valid",
+   "neutralReason": "LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION returns runners.id[] for the same org, which is the runner_id LIST_LABELS_FOR_SELF_HOSTED_RUNNER_ORG takes.",
+   "skepticReason": "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION returns runners.id[] at organization scope, matching the org-level runner_id required by the org runner labels tool."
+  },
+  {
+   "from": "GITHUB_CREATE_A_PULL_REQUEST",
+   "to": "GITHUB_DISMISS_A_REVIEW_FOR_A_PULL_REQUEST",
+   "label": "pull_number",
+   "neutral": "valid",
+   "skeptic": "invalid",
+   "neutralReason": "CREATE_A_PULL_REQUEST returns the new PR object including its number (confirmed in its schema), which is the pull_number DISMISS_A_REVIEW_FOR_A_PULL_REQUEST needs, though a fresh PR will have no reviews yet; kind and scope still match.",
+   "skepticReason": "Dismissing a review needs an existing APPROVED/CHANGES_REQUESTED review (plus review_id), but GITHUB_CREATE_A_PULL_REQUEST only makes a fresh PR with no reviews, so it misleads the agent into opening a new PR instead of finding the existin\u2026"
+  }
+ ],
+ "inputs": [
+  {
+   "consumer": "GITHUB_CREATE_A_PROJECT_CARD",
+   "param": "column_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PROJECT_COLUMNS",
+    "GITHUB_CREATE_A_PROJECT_COLUMN"
+   ],
+   "judgeReason": "column_id is the numeric id of a classic-project column. LIST_PROJECT_COLUMNS and CREATE_A_PROJECT_COLUMN both return column `id`. Both need project_id, which is a further upstream dependency. Classic projects are sunset, so these calls ma\u2026"
+  },
+  {
+   "consumer": "GITHUB_ENABLE_GITHUB_ACTIONS_IN_SELECTED_REPOSITORIES",
+   "param": "selected_repository_ids",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_ORGANIZATION_REPOSITORIES",
+    "GITHUB_GET_A_REPOSITORY",
+    "GITHUB_LIST_ORG_REPOS_WITH_GITHUB_ACTIONS_ENABLED"
+   ],
+   "judgeReason": "The input is numeric repository IDs, which users rarely know. LIST_ORGANIZATION_REPOSITORIES returns `id` for every repo in the org, so it matches the org scope. GET_A_REPOSITORY returns `id` for a single named repo. LIST_ORG_REPOS_WITH_GI\u2026"
+  },
+  {
+   "consumer": "GITHUB_SET_INTERACTION_RESTRICTIONS_FOR_YOUR_PUBLIC_REPOS",
+   "param": "limit",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "This is an enum choice (existing_users, contributors_only, collaborators_only) that the user decides. No tool is needed."
+  },
+  {
+   "consumer": "GITHUB_CREATE_A_SNAPSHOT_OF_DEPENDENCIES_FOR_A_REPOSITORY",
+   "param": "ref",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The fully qualified Git ref (e.g. refs/heads/main) is stated by the caller or CI context and identifies the branch or tag that triggered the snapshot. LIST_MATCHING_REFERENCES returns full refs, but it needs a partial ref as input, so it d\u2026"
+  },
+  {
+   "consumer": "GITHUB_PING_A_REPOSITORY_WEBHOOK",
+   "param": "hook_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_REPOSITORY_WEBHOOKS",
+    "GITHUB_CREATE_A_REPOSITORY_WEBHOOK"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_REPOSITORY_WEBHOOKS",
+    "GITHUB_CREATE_A_REPOSITORY_WEBHOOK"
+   ],
+   "judgeReason": "hook_id is a numeric webhook id that users do not normally know. LIST_REPOSITORY_WEBHOOKS returns `id` for each hook, and CREATE_A_REPOSITORY_WEBHOOK returns the new hook's `id`. Both are repo-scoped, so the scope matches."
+  },
+  {
+   "consumer": "GITHUB_UPDATE_A_MILESTONE",
+   "param": "milestone_number",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_MILESTONES",
+    "GITHUB_CREATE_A_MILESTONE"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_MILESTONES",
+    "GITHUB_CREATE_A_MILESTONE"
+   ],
+   "judgeReason": "milestone_number is the per-repo milestone `number`, which differs from the global `id`. LIST_MILESTONES and CREATE_A_MILESTONE both return `number`. Neither needs milestone_number as input."
+  },
+  {
+   "consumer": "GITHUB_GET_DEPLOYMENT_STATUS",
+   "param": "deployment_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_DEPLOYMENTS",
+    "GITHUB_CREATE_A_DEPLOYMENT"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_DEPLOYMENTS",
+    "GITHUB_CREATE_A_DEPLOYMENT"
+   ],
+   "judgeReason": "deployment_id is the numeric deployment `id`. LIST_DEPLOYMENTS returns it for a repo, and CREATE_A_DEPLOYMENT returns the id of the new deployment. LIST_DEPLOYMENT_STATUSES is not a producer because it needs deployment_id itself."
+  },
+  {
+   "consumer": "GITHUB_REMOVE_USER_ACCESS_RESTRICTIONS",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The branch is a name the user states (e.g. main or release). It must be a literal protected branch name with no wildcards. GITHUB_LIST_BRANCHES (which returns the `protected` flag) can help discover it, but the user normally names the bran\u2026"
+  },
+  {
+   "consumer": "GITHUB_REMOVE_ALL_LABELS_FROM_AN_ISSUE",
+   "param": "issue_number",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER",
+    "GITHUB_LIST_REPOSITORY_ISSUES",
+    "GITHUB_SEARCH_ISSUES",
+    "GITHUB_CREATE_AN_ISSUE"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_REPOSITORY_ISSUES",
+    "GITHUB_CREATE_AN_ISSUE",
+    "GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS"
+   ],
+   "judgeReason": "issue_number is the per-repo issue `number`. LIST_REPOSITORY_ISSUES returns `number` for each issue in the repo. CREATE_AN_ISSUE returns the new issue's `number`. SEARCH_ISSUES_AND_PULL_REQUESTS finds issues by keyword or qualifiers when o\u2026"
+  },
+  {
+   "consumer": "GITHUB_REVIEW_PENDING_DEPLOYMENTS_FOR_A_WORKFLOW_RUN",
+   "param": "run_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW"
+   ],
+   "judgeReason": "run_id is the workflow run `id`. LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY needs only owner and repo and returns each run's `id` (filterable by status, e.g. waiting). LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW does the same per workflow but needs workflo\u2026"
+  },
+  {
+   "consumer": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_A_USER",
+   "param": "package_version_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PACKAGE_VERSIONS_FOR_A_PACKAGE_OWNED_BY_A_USER",
+    "GITHUB_LIST_OWNED_PACKAGE_VERSIONS"
+   ],
+   "judgeReason": "package_version_id is the numeric version `id`, and the card says to get it by listing package versions for a user-owned package. LIST_PACKAGE_VERSIONS_FOR_A_PACKAGE_OWNED_BY_A_USER returns `id` and `deleted_at`. LIST_OWNED_PACKAGE_VERSION\u2026"
+  },
+  {
+   "consumer": "GITHUB_GET_REPOSITORY_CONTENT",
+   "param": "path",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "This is the file or directory path inside the repo, which the user names (e.g. README.md or src/index.ts). GITHUB_GET_A_TREE or this tool itself with an empty path can browse the repo for discovery, but the path is normally given by the us\u2026"
+  },
+  {
+   "consumer": "GITHUB_GET_A_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+   "param": "package_type",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "package_type is a fixed enum (npm, maven, rubygems, docker, nuget, container) that the user states. The org package listing tools also require package_type as input, so none of them can supply it."
+  },
+  {
+   "consumer": "GITHUB_UPDATE_A_COMMIT_COMMENT",
+   "param": "comment_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_COMMIT_COMMENTS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_COMMIT_COMMENTS",
+    "GITHUB_CREATE_A_COMMIT_COMMENT"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_COMMIT_COMMENTS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_COMMIT_COMMENTS",
+    "GITHUB_CREATE_A_COMMIT_COMMENT"
+   ],
+   "judgeReason": "comment_id is the numeric commit comment `id`. LIST_COMMIT_COMMENTS_FOR_A_REPOSITORY needs only owner and repo and returns each comment `id`. LIST_COMMIT_COMMENTS is narrower because it also needs commit_sha. CREATE_A_COMMIT_COMMENT return\u2026"
+  },
+  {
+   "consumer": "GITHUB_LIST_ORG_PACKAGE_VERSIONS",
+   "param": "package_name",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_PACKAGES_FOR_AN_ORGANIZATION"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PACKAGES_FOR_AN_ORGANIZATION"
+   ],
+   "judgeReason": "The org's package names can be enumerated with LIST_PACKAGES_FOR_AN_ORGANIZATION, which returns `name` per package and is org-scoped like this tool. It requires package_type, which the user supplies. Confidence is medium because users ofte\u2026"
+  },
+  {
+   "consumer": "GITHUB_UPDATE_A_CODE_SCANNING_ALERT",
+   "param": "alert_number",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_CODE_SCANNING_ALERTS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_CODE_SCANNING_ALERTS_FOR_AN_ORGANIZATION"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_CODE_SCANNING_ALERTS_FOR_A_REPOSITORY"
+   ],
+   "judgeReason": "alert_number is the repo-scoped alert `number`, and the card itself says to take it from the GET alerts response. LIST_CODE_SCANNING_ALERTS_FOR_A_REPOSITORY returns `number` for each alert. I left out the org-level alert list to keep the s\u2026"
+  },
+  {
+   "consumer": "GITHUB_ADD_OR_UPDATE_TEAM_MEMBERSHIP_FOR_USER",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "This is the GitHub handle of the person the user wants to add or update. The target may not yet be an org member (the tool invites them), so listing existing members would not help. The handle is stated by the user."
+  },
+  {
+   "consumer": "GITHUB_CREATE_A_PULL_REQUEST",
+   "param": "base",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_CODEQL_DATABASES_FOR_A_REPOSITORY"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "base is the target branch name the user wants to merge into (e.g. main), stated by the user, or the repo default branch if they don't say. GITHUB_LIST_BRANCHES and GITHUB_GET_A_REPOSITORY (default_branch) exist for discovery, but this is n\u2026"
+  },
+  {
+   "consumer": "GITHUB_REMOVE_STATUS_CHECK_PROTECTION",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "This is a literal branch name the user states (e.g. main). Wildcards are not allowed. GITHUB_LIST_BRANCHES could be used for discovery, but the user normally names the branch."
+  },
+  {
+   "consumer": "GITHUB_DELETE_APP_AUTHORIZATION",
+   "param": "client_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "This is the client ID of the user's own OAuth App, shown in the app's developer settings, and the user must also hold the client_secret. No catalog tool lists OAuth App client IDs. GITHUB_GET_AN_APP returns clientId only for a GitHub App i\u2026"
+  },
+  {
+   "consumer": "GITHUB_UPDATE_A_RELEASE_ASSET",
+   "param": "asset_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_RELEASE_ASSETS",
+    "GITHUB_UPLOAD_RELEASE_ASSET"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_RELEASE_ASSETS",
+    "GITHUB_GET_A_RELEASE_BY_TAG_NAME",
+    "GITHUB_UPLOAD_RELEASE_ASSET"
+   ],
+   "judgeReason": "asset_id is a numeric id GitHub assigns to an uploaded asset. It comes from listing a release's assets (needs release_id), from the assets array in a get-release response, or from the upload response."
+  },
+  {
+   "consumer": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+   "param": "package_version_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_ORG_PACKAGE_VERSIONS"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_ORG_PACKAGE_VERSIONS"
+   ],
+   "judgeReason": "The version id is numeric and server-assigned. The org-scoped list of versions returns each id and has a state filter, so deleted versions can be found. No other org-scoped producer exists in the catalog."
+  },
+  {
+   "consumer": "GITHUB_GET_A_WORKFLOW_RUN",
+   "param": "run_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW"
+   ],
+   "judgeReason": "run_id is a numeric id assigned by GitHub when a run starts. The user rarely has it, so the agent lists runs. The repository-level list needs only owner and repo. The workflow-level list needs a workflow_id."
+  },
+  {
+   "consumer": "GITHUB_CREATE_DRAFT_ITEM_FOR_USER_PROJECT",
+   "param": "title",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The title is free text the user writes for the new draft item. No tool produces it."
+  },
+  {
+   "consumer": "GITHUB_MANAGE_SECRETS_IN_SELECTED_REPOSITORIES",
+   "param": "secret_name",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "Org secret names (for example NPM_TOKEN) are human-chosen identifiers the user normally states. GITHUB_LIST_ORGANIZATION_SECRETS and GITHUB_LIST_ORG_SECRETS_WITHOUT_VALUES can be used for discovery if the user does not remember the name, b\u2026"
+  },
+  {
+   "consumer": "GITHUB_DELETE_BRANCH_PROTECTION",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The branch name (for example main) is a name the user states. GITHUB_LIST_BRANCHES can help discover it but is not normally required. Wildcards are not supported."
+  },
+  {
+   "consumer": "GITHUB_CREATE_JIT_RUNNER_CONFIG",
+   "param": "runner_group_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The runner group would normally be looked up, but the catalog has no tool that lists runner groups (searched slugs and descriptions). The card says 0 means the default group, so the user supplies the id or accepts the default."
+  },
+  {
+   "consumer": "GITHUB_GET_DEPENDENCY_DIFF",
+   "param": "basehead",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "basehead is a BASE...HEAD string the user composes from the refs they want to compare (branches, tags or SHAs). It is a composed value, not a single id returned by a tool."
+  },
+  {
+   "consumer": "GITHUB_REMOVE_REVIEW_REQUEST",
+   "param": "pull_number",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PULL_REQUESTS",
+    "GITHUB_FIND_PULL_REQUESTS",
+    "GITHUB_CREATE_A_PULL_REQUEST"
+   ],
+   "judgeReason": "pull_number is a per-repository PR number. If the user does not state it, the agent lists or searches PRs in the repo, or gets it from the create-PR response."
+  },
+  {
+   "consumer": "GITHUB_SET_REPO_RUNNER_LABELS",
+   "param": "labels",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The labels are custom label strings the user chooses for the runner. An empty list is allowed. Existing labels can be read with GITHUB_LIST_LABELS_FOR_A_SELF_HOSTED_RUNNER_FOR_A_REPOSITORY, but the new set is a user decision."
+  },
+  {
+   "consumer": "GITHUB_UPDATE_AN_ORGANIZATION_WEBHOOK",
+   "param": "hook_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_ORGANIZATION_WEBHOOKS",
+    "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_ORGANIZATION_WEBHOOKS",
+    "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK"
+   ],
+   "judgeReason": "hook_id is a numeric id assigned by GitHub. The org webhook list returns each id, and the create call returns the new one. The scope is organization, not repository."
+  },
+  {
+   "consumer": "GITHUB_GET_ASSIGNMENT_GRADES",
+   "param": "assignment_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_ASSIGNMENTS_FOR_A_CLASSROOM"
+   ],
+   "judgeReason": "The card says the id comes from the assignment-listing action. That tool returns assignment ids and needs a classroom_id, which GITHUB_LIST_CLASSROOMS provides."
+  },
+  {
+   "consumer": "GITHUB_GET_CODEQL_DATABASE",
+   "param": "language",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "language is an enum choice (for example python or javascript) that the user states for the repo. GITHUB_LIST_CODEQL_DATABASES_FOR_A_REPOSITORY can show which languages have databases, but that is optional discovery."
+  },
+  {
+   "consumer": "GITHUB_GET_DISCUSSION_COMMENT",
+   "param": "team_slug",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_REPOSITORY_TEAMS",
+    "GITHUB_LIST_TEAMS",
+    "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER",
+    "GITHUB_CREATE_A_TEAM"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "A team slug is a human-readable handle derived from the team name, and the card explains how to derive it. The user normally knows it. GITHUB_LIST_TEAMS exists for discovery but is not required."
+  },
+  {
+   "consumer": "GITHUB_GET_A_SELF_HOSTED_RUNNER_FOR_AN_ORGANIZATION",
+   "param": "runner_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION",
+    "GITHUB_CONFIGURE_JIT_RUNNER_FOR_ORG"
+   ],
+   "judgeReason": "runner_id is a numeric id GitHub assigns when a runner registers. The org-level runner list returns it, and the org JIT config call returns the new runner object. Both are org-scoped."
+  },
+  {
+   "consumer": "GITHUB_UNLOCK_USER_REPOSITORY",
+   "param": "migration_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "unsure",
+   "judgeProducers": [],
+   "judgeReason": "A user migration id would normally come from starting or listing user migrations (POST or GET /user/migrations). The catalog has no such tool: only repository-migration abort and the unlock actions mention migrations. The agent cannot obta\u2026"
+  },
+  {
+   "consumer": "GITHUB_GET_TEAMS_WITH_ACCESS_TO_THE_PROTECTED_BRANCH",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The branch name is stated by the user. GITHUB_LIST_BRANCHES can help discover it but is not normally required. Wildcards are not supported."
+  },
+  {
+   "consumer": "GITHUB_DISABLE_A_CUSTOM_PROTECTION_RULE_FOR_AN_ENVIRONMENT",
+   "param": "protection_rule_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_GET_ALL_DEPLOYMENT_PROTECTION_RULES_FOR_ENV",
+    "GITHUB_CREATE_DEPLOYMENT_PROTECTION_RULE"
+   ],
+   "judgeReason": "protection_rule_id is a server-assigned numeric id of an enabled rule. Listing the environment's enabled protection rules returns the ids, and creating a rule returns the new one. The scope is the repository and environment, so repo, owner\u2026"
+  },
+  {
+   "consumer": "GITHUB_CREATE_A_CHECK_RUN",
+   "param": "head_sha",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_COMMITS",
+    "GITHUB_GET_A_BRANCH",
+    "GITHUB_GET_A_PULL_REQUEST"
+   ],
+   "judgeReason": "A 40-character commit SHA is rarely something the user has to hand. The agent gets it from the commit list, from a branch's head commit, or from the PR's head.sha. All three need only repo and owner, plus a branch or PR number."
+  },
+  {
+   "consumer": "GITHUB_GET_A_PACKAGE_VERSION_FOR_A_USER",
+   "param": "package_version_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PACKAGE_VERSIONS_FOR_A_PACKAGE_OWNED_BY_A_USER"
+   ],
+   "judgeReason": "The card says to list versions with this action. It is the username-scoped list and returns the numeric version ids. The authenticated-user list is a different scope and is not a fit."
+  },
+  {
+   "consumer": "GITHUB_GET_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+   "param": "package_version_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_OWNED_PACKAGE_VERSIONS"
+   ],
+   "judgeReason": "Numeric package version ID is only discoverable from the authenticated user's package version list (each PackageVersion has an integer id). The list tool needs package_type and package_name, not package_version_id, so no cycle. Those two c\u2026"
+  },
+  {
+   "consumer": "GITHUB_SET_A_THREAD_SUBSCRIPTION",
+   "param": "thread_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_NOTIFICATIONS",
+    "GITHUB_LIST_REPO_NOTIFICATIONS_FOR_AUTH_USER",
+    "GITHUB_LIST_NOTIFICATIONS_FOR_THE_AUTHENTICATED_USER"
+   ],
+   "judgeReason": "The input description itself says to get the thread id from GET /notifications. Each notification's id is the thread id. GITHUB_LIST_NOTIFICATIONS has no required inputs. The repo-scoped variant needs owner and repo. The third is deprecate\u2026"
+  },
+  {
+   "consumer": "GITHUB_GET_AN_ORGANIZATION_WEBHOOK",
+   "param": "hook_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_ORGANIZATION_WEBHOOKS",
+    "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_ORGANIZATION_WEBHOOKS",
+    "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK"
+   ],
+   "judgeReason": "The numeric org hook_id is returned by listing the org's webhooks (needs only org) or by creating one. Delivery-header lookup is impractical for an agent. Org scope matches the consumer's org webhook."
+  },
+  {
+   "consumer": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+   "param": "value",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The value is the content the user wants to set (text, number, date, etc.), so the user states it. For single-select or iteration fields the option id or iteration id would need a lookup in GITHUB_LIST_PROJECT_FIELDS_FOR_USER. The input is \u2026"
+  },
+  {
+   "consumer": "GITHUB_GET_GITHUB_BILLING_USAGE_SUMMARY_FOR_USER",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The username is a GitHub handle the user states for the account whose billing they want. No catalog tool is needed to derive it."
+  },
+  {
+   "consumer": "GITHUB_SEARCH_ISSUES",
+   "param": "q",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "q is a free-text search query with qualifiers that the user composes. It is the search criteria, not an id from another tool."
+  },
+  {
+   "consumer": "GITHUB_REMOVE_CUSTOM_LABEL_FROM_REPO_RUNNER",
+   "param": "runner_id",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY",
+    "GITHUB_CREATE_JIT_RUNNER_CONFIG"
+   ],
+   "judgeReason": "runner_id is a numeric id returned by listing the repository's self-hosted runners, as the input description says. It needs only owner and repo, which fits repository scope. CREATE_JIT_RUNNER_CONFIG also returns a repo runner object with i\u2026"
+  },
+  {
+   "consumer": "GITHUB_SUBMIT_A_REVIEW_FOR_A_PULL_REQUEST",
+   "param": "event",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "event is an enum choice (APPROVE, REQUEST_CHANGES, COMMENT) that the user or agent decides. No tool returns it."
+  },
+  {
+   "consumer": "GITHUB_CHECK_PERSON_FOLLOWED_BY_AUTH_USER",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The username is the handle of the person the user wants to check. The user names them directly."
+  },
+  {
+   "consumer": "GITHUB_CREATE_AN_AUTOLINK_REFERENCE_FOR_A_REPOSITORY",
+   "param": "key_prefix",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "key_prefix is a new autolink prefix (e.g. JIRA-) that the user chooses at creation time. It is free text, not looked up."
+  },
+  {
+   "consumer": "GITHUB_GET_USERS_PROJECTS_V2",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The username is the handle of the user whose Projects v2 are listed. The user states it. GITHUB_SEARCH_USERS could resolve a vague name, but a handle is normally known."
+  },
+  {
+   "consumer": "GITHUB_DELETE_A_REPOSITORY_VARIABLE",
+   "param": "name",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "The name of the repository variable to delete is something the user states, since they are naming the variable they want removed. GITHUB_LIST_REPOSITORY_VARIABLES exists as an optional lookup if the user is unsure of the exact name. The na\u2026"
+  },
+  {
+   "consumer": "GITHUB_UPDATE_A_TEAM",
+   "param": "team_slug",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_REPOSITORY_TEAMS",
+    "GITHUB_LIST_TEAMS",
+    "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER",
+    "GITHUB_CREATE_A_TEAM"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_TEAMS",
+    "GITHUB_CREATE_A_TEAM"
+   ],
+   "judgeReason": "team_slug is the URL-safe slug, which often differs from the display name the user says. It is resolved from the org's teams (each Team has a slug). GITHUB_LIST_TEAMS needs only org, which matches the consumer's org scope. GITHUB_CREATE_A_\u2026"
+  },
+  {
+   "consumer": "GITHUB_CREATE_REACTION_FOR_A_RELEASE",
+   "param": "content",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "content is a fixed enum of reaction emoji types (+1, heart, rocket, etc.) that the user chooses. No tool returns it."
+  },
+  {
+   "consumer": "GITHUB_LIST_LABELS_FOR_A_SELF_HOSTED_RUNNER_FOR_A_REPOSITORY",
+   "param": "runner_id",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY",
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION"
+   ],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY",
+    "GITHUB_CREATE_JIT_RUNNER_CONFIG"
+   ],
+   "judgeReason": "The runner id is obtained by listing the repository's self-hosted runners (the input description says to get it from listing runners for the repository). The list tool needs only owner and repo. Repository scope applies, not org."
+  },
+  {
+   "consumer": "GITHUB_DELETE_ORG_CODESPACE",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "username is the handle of the codespace owner, which the user names. The codespace itself would be found with GITHUB_LIST_CODESPACES_FOR_A_USER_IN_ORGANIZATION, which takes username as input. That makes the username a given rather than som\u2026"
+  },
+  {
+   "consumer": "GITHUB_CONVERT_ORG_MEMBER_TO_OUTSIDE_COLLABORATOR",
+   "param": "username",
+   "ourTreatment": "excluded",
+   "ourProducers": [],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "username is the handle of the org member the user wants to convert. The user states it. Listing org members could help if unknown, but it is a person the user selects."
+  },
+  {
+   "consumer": "GITHUB_LIST_APPS_WITH_ACCESS_TO_THE_PROTECTED_BRANCH",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "branch is a branch name (e.g. main) that the user normally states. GITHUB_LIST_BRANCHES exists as an optional lookup, but a branch name is a human-chosen identifier rather than an opaque id."
+  },
+  {
+   "consumer": "GITHUB_LIST_STATUS_CHECK_CONTEXTS",
+   "param": "branch",
+   "ourTreatment": "considered",
+   "ourProducers": [
+    "GITHUB_LIST_BRANCHES"
+   ],
+   "judgeSource": "user_supplied",
+   "judgeProducers": [],
+   "judgeReason": "branch is a branch name (e.g. main) that the user normally states. GITHUB_LIST_BRANCHES exists as an optional lookup, but it is a human-chosen name rather than an opaque id."
+  },
+  {
+   "consumer": "GITHUB_REQUEST_REVIEWERS",
+   "param": "pull_number",
+   "ourTreatment": "considered",
+   "ourProducers": [],
+   "judgeSource": "from_tool",
+   "judgeProducers": [
+    "GITHUB_LIST_PULL_REQUESTS",
+    "GITHUB_FIND_PULL_REQUESTS",
+    "GITHUB_CREATE_A_PULL_REQUEST"
+   ],
+   "judgeReason": "The pull request number is looked up by listing or finding PRs in the repo (title, branch or author searches), or it comes back from creating one. GITHUB_LIST_PULL_REQUESTS needs owner and repo only. GITHUB_FIND_PULL_REQUESTS has no requir\u2026"
+  }
+ ]
+}
